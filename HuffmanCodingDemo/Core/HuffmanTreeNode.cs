@@ -18,7 +18,7 @@ namespace HuffmanCodingDemo.Core
     /// 2. 具有指示自身作为孩子的编码字段（通常是 0 和 1）
     /// </para>
     /// </summary>
-    class HuffmanTreeNode : BinaryTreeNode<int>, IComparable<BinaryTreeNode<int>>
+    public class HuffmanTreeNode : BinaryTreeNode<int>, IComparable<BinaryTreeNode<int>>
     {
         public int ChildCode { get; set; }
 

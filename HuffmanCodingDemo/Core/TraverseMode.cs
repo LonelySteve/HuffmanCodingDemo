@@ -9,7 +9,7 @@ namespace HuffmanCodingDemo.Core
     /// <summary>
     /// 遍历模式
     /// </summary>
-    enum TraverseMode
+    public enum TraverseMode
     {
         /// <summary>
         /// 前序遍历

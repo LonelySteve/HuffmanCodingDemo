@@ -9,7 +9,7 @@ namespace HuffmanCodingDemo.Core
     /// <summary>
     /// 二叉树
     /// </summary>
-    class BinaryTree<T>
+    public class BinaryTree<T>
     {
         /// <summary>
         /// 获取或设置根结点

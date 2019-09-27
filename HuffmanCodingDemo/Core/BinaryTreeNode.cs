@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace HuffmanCodingDemo.Core
 {
-    class BinaryTreeNode<T>
+    public class BinaryTreeNode<T>
     {
         public event EventHandler<TraverseEventArgs> TraverseEvent;
         private BinaryTreeNode<T> leftNode;

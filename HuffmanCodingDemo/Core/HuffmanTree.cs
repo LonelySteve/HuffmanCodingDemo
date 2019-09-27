@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 namespace HuffmanCodingDemo.Core
 {
 
-    class HuffmanTree : BinaryTree<int>
+    public class HuffmanTree : BinaryTree<int>
     {
         public static HuffmanTree CreateFromDictionary(Dictionary<string, int> keyValuePairs)
         {

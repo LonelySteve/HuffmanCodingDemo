@@ -9,7 +9,7 @@ namespace HuffmanCodingDemo.Core
     /// <summary>
     /// 遍历事件参数
     /// </summary>
-    class TraverseEventArgs : EventArgs
+    public class TraverseEventArgs : EventArgs
     {
         /// <summary>
         /// 当前遍历的索引号
