@@ -24,5 +24,14 @@ namespace HuffmanCodingDemo
         {
             InitializeComponent();
         }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            Ellipse ellipse = new Ellipse() { Width = 100, Height = 100, Fill = new SolidColorBrush() { Color = Colors.Black } };
+            Canvas.SetLeft(ellipse, 100);
+            Canvas.SetTop(ellipse, 100);
+            canvas.Children.Add(ellipse);
+
+        }
     }
 }

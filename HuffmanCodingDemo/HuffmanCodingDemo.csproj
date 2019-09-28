@@ -37,6 +37,8 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -63,6 +65,15 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Core\BinaryTrees\BinaryTree.cs" />
+    <Compile Include="Core\BinaryTrees\BinaryTreeNode.cs" />
+    <Compile Include="Core\HuffmanTrees\HuffmanTree.cs" />
+    <Compile Include="Core\HuffmanTrees\HuffmanTreeNode.cs" />
+    <Compile Include="Core\HuffmanTrees\HuffmanTreeNodeData.cs" />
+    <Compile Include="Core\Iterators\InIterator.cs" />
+    <Compile Include="Core\Iterators\IteratorMode.cs" />
+    <Compile Include="Core\Iterators\PostIterator.cs" />
+    <Compile Include="Core\Iterators\PreIterator.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
