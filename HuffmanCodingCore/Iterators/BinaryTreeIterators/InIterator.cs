@@ -1,17 +1,21 @@
-﻿using System.Collections;
+﻿using HuffmanCodingCore.Structs.BinaryTrees.Nodes;
+using System;
+using System.Collections;
 using System.Collections.Generic;
-using HuffmanCodingDemo.Core.BinaryTrees;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-namespace HuffmanCodingDemo.Core.Iterators
+namespace HuffmanCodingCore.Iterators.BinaryTreeIterators
 {
     /// <summary>
-    /// 后序迭代器
+    /// 中序遍历器
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    class PostIterator<T> : IEnumerable<BinaryTreeNode<T>>
+    class InIterator<T> : IEnumerable<BinaryTreeNode<T>>
     {
         public BinaryTreeNode<T> RootTreeNode { get; private set; }
-        public PostIterator(BinaryTreeNode<T> binaryTreeNode)
+        public InIterator(BinaryTreeNode<T> binaryTreeNode = null)
         {
             RootTreeNode = binaryTreeNode;
         }
@@ -22,19 +26,19 @@ namespace HuffmanCodingDemo.Core.Iterators
             {
                 if (RootTreeNode.LeftNode != null)
                 {
-                    foreach (var node in RootTreeNode.LeftNode.PostIterator)
-                    {
-                        yield return node;
-                    }
-                }
-                if (RootTreeNode.RightNode != null)
-                {
-                    foreach (var node in RootTreeNode.RightNode.PostIterator)
+                    foreach (var node in RootTreeNode.LeftNode.InIterator)
                     {
                         yield return node;
                     }
                 }
                 yield return RootTreeNode;
+                if (RootTreeNode.RightNode != null)
+                {
+                    foreach (var node in RootTreeNode.RightNode.InIterator)
+                    {
+                        yield return node;
+                    }
+                }
             }
         }
 

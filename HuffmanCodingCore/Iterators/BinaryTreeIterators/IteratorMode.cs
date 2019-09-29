@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace HuffmanCodingDemo.Core.Iterators
+namespace HuffmanCodingCore.Iterators.BinaryTreeIterators
 {
     /// <summary>
     /// 迭代器模式

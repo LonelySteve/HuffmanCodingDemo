@@ -1,20 +1,20 @@
-﻿using System;
+﻿using HuffmanCodingCore.Iterators.BinaryTreeIterators;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using HuffmanCodingDemo.Core.Iterators;
 
-namespace HuffmanCodingDemo.Core.BinaryTrees
+namespace HuffmanCodingCore.Structs.BinaryTrees.Nodes
 {
     public class BinaryTreeNode<T>
     {
         private BinaryTreeNode<T> leftNode;
         private BinaryTreeNode<T> rightNode;
         /// <summary>
-        /// 获取或设置二叉树结点的名字（可以不唯一）
+        /// 获取或设置二叉树结点的标签（可以不唯一）
         /// </summary>
-        public string Name { get; set; }
+        public string Tag { get; set; }
         /// <summary>
         /// 获取或设置数据字段
         /// </summary>
@@ -30,11 +30,11 @@ namespace HuffmanCodingDemo.Core.BinaryTrees
                 {
                     // 解除原左结点对自己的引用
                     leftNode.ParentNode = null;
-                    if (value != null)
-                    {
-                        // 建立新左结点对自己的引用
-                        value.ParentNode = this;
-                    }
+                }
+                if (value != null)
+                {
+                    // 建立新左结点对自己的引用
+                    value.ParentNode = this;
                 }
                 // 保存新左结点的引用
                 leftNode = value;
@@ -51,11 +51,11 @@ namespace HuffmanCodingDemo.Core.BinaryTrees
                 {
                     // 解除原右结点对自己的引用
                     rightNode.ParentNode = null;
-                    if (value != null)
-                    {
-                        // 建立新右结点对自己的引用
-                        value.ParentNode = this;
-                    }
+                }
+                if (value != null)
+                {
+                    // 建立新右结点对自己的引用
+                    value.ParentNode = this;
                 }
                 // 保存新右结点的引用
                 rightNode = value;
@@ -75,19 +75,47 @@ namespace HuffmanCodingDemo.Core.BinaryTrees
             }
         }
         /// <summary>
-        /// 获取当前结点的终端结点数量
+        /// 指示该结点是否为叶子结点
         /// </summary>
-        public int EndNodeCount
+        public bool IsLeafNode => Depth == 1;
+        /// <summary>
+        /// 获取当前结点的叶子结点数量
+        /// </summary>
+        public int LeafNodeCount
         {
             get
             {
-                int leftEndNodeCount = LeftNode == null ? 0 : LeftNode.EndNodeCount;
-                int rightEndNodeCount = RightNode == null ? 0 : RightNode.EndNodeCount;
+                int leftEndNodeCount = LeftNode == null ? 0 : LeftNode.LeafNodeCount;
+                int rightEndNodeCount = RightNode == null ? 0 : RightNode.LeafNodeCount;
                 // 如果左右结点没有任何一个具有终端结点，则返回1（即当前结点为终端结点），否则返回左右结点终端结点数之和
                 if (leftEndNodeCount == 0 && rightEndNodeCount == 0)
                     return 1;
                 else
                     return leftEndNodeCount + rightEndNodeCount;
+            }
+        }
+        /// <summary>
+        /// 获取叶子结点列表
+        /// </summary>
+        public List<BinaryTreeNode<T>> LeafNodes
+        {
+            get
+            {
+                List<BinaryTreeNode<T>> nodes = new List<BinaryTreeNode<T>>();
+                if (IsLeafNode)
+                {
+                    nodes.Add(this);
+                    return nodes;
+                }
+                if (LeftNode != null)
+                {
+                    nodes.AddRange(LeftNode.LeafNodes);
+                }
+                if (RightNode != null)
+                {
+                    nodes.AddRange(RightNode.LeafNodes);
+                }
+                return nodes;
             }
         }
 

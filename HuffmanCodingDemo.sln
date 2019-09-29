@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HuffmanCodingDemo", "Huffma
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTest", "UnitTest\UnitTest.csproj", "{C317CFF0-E3B0-44A6-8A1F-78E4BB3628BF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HuffmanCodingCore", "HuffmanCodingCore\HuffmanCodingCore.csproj", "{66719AED-47C3-4B07-BDD7-95F16F69D9D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{C317CFF0-E3B0-44A6-8A1F-78E4BB3628BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C317CFF0-E3B0-44A6-8A1F-78E4BB3628BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C317CFF0-E3B0-44A6-8A1F-78E4BB3628BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{66719AED-47C3-4B07-BDD7-95F16F69D9D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{66719AED-47C3-4B07-BDD7-95F16F69D9D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{66719AED-47C3-4B07-BDD7-95F16F69D9D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{66719AED-47C3-4B07-BDD7-95F16F69D9D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

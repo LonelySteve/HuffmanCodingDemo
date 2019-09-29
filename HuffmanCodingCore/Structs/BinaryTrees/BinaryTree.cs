@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
-using HuffmanCodingDemo.Core.Iterators;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using HuffmanCodingCore.Iterators.BinaryTreeIterators;
+using HuffmanCodingCore.Structs.BinaryTrees.Nodes;
 
-namespace HuffmanCodingDemo.Core.BinaryTrees
+namespace HuffmanCodingCore.Structs.BinaryTrees
 {
     /// <summary>
     /// 二叉树
@@ -16,21 +20,33 @@ namespace HuffmanCodingDemo.Core.BinaryTrees
         /// <summary>
         /// 获取当前树是否为空
         /// </summary>
-        public bool IsEmpty { get => RootNode == null; }
+        public bool IsEmpty => RootNode == null;
+        /// <summary>
+        /// 获取树的深度
+        /// </summary>
+        public int Depth => RootNode == null ? 0 : RootNode.Depth;
+        /// <summary>
+        /// 获取叶子结点列表
+        /// </summary>
+        public List<BinaryTreeNode<T>> LeafNodes => RootNode == null ? new List<BinaryTreeNode<T>>() : RootNode.LeafNodes;
+        /// <summary>
+        /// 获取叶子结点数量
+        /// </summary>
+        public int LeafNodeCount => RootNode == null ? 0 : RootNode.LeafNodeCount;
 
         #region Node 的迭代器属性包装
         /// <summary>
         /// 前序迭代器
         /// </summary>
-        public IEnumerable<BinaryTreeNode<T>> PreIterator => RootNode.PreIterator;
+        public IEnumerable<BinaryTreeNode<T>> PreIterator => RootNode == null ? new PreIterator<T>() : RootNode.PreIterator;
         /// <summary>
         /// 中序迭代器
         /// </summary>
-        public IEnumerable<BinaryTreeNode<T>> InIterator => RootNode.InIterator;
+        public IEnumerable<BinaryTreeNode<T>> InIterator => RootNode == null ? new InIterator<T>() : RootNode.InIterator;
         /// <summary>
         /// 后序迭代器
         /// </summary>
-        public IEnumerable<BinaryTreeNode<T>> PostIterator => RootNode.PostIterator;
+        public IEnumerable<BinaryTreeNode<T>> PostIterator => RootNode == null ? new PostIterator<T>() : RootNode.PostIterator;
         #endregion
 
         public BinaryTree(BinaryTreeNode<T> rootNode = null)
