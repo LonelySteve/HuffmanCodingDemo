@@ -2,6 +2,7 @@
 using HuffmanCodingCore.Structs.HuffmanTrees.Nodes;
 using HuffmanCodingCore.Structs.HuffmanTrees.Nodes.Data;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -40,26 +41,24 @@ namespace HuffmanCodingCore.Structs.HuffmanTrees
         /// <summary>
         /// 获取编码本
         /// </summary>
-        public Dictionary<T, string> CodeBook
+        public Dictionary<T, BitArray> CodeBook
         {
             get
             {
-                Dictionary<T, string> codeBook = new Dictionary<T, string>();
+                Dictionary<T, BitArray> codeBook = new Dictionary<T, BitArray>();
                 var leafNodes = LeafNodes;
                 foreach (var node in leafNodes)
                 {
-                    StringBuilder stringBuilder = new StringBuilder();
+                    var bits = new List<bool>();
+
                     HuffmanTreeNode parentNode = (HuffmanTreeNode)node;
                     do
                     {
-                        stringBuilder.Append(parentNode.Data.Code.Value ? '1' : '0');
+                        bits.Add(parentNode.Data.Code.Value);
                         parentNode = (HuffmanTreeNode)parentNode.ParentNode;
                     } while (parentNode.Data.Code.HasValue);
-                    char[] reversedCodes = stringBuilder.ToString().ToArray();
-                    Array.Reverse(reversedCodes);
-                    var codeString = new string(reversedCodes);
-
-                    codeBook.Add(((HuffmanTreeLeafNodeData<T>)node.Data).Content, codeString);
+                    bits.Reverse();
+                    codeBook.Add(((HuffmanTreeLeafNodeData<T>)node.Data).Content, new BitArray(bits.ToArray()));
                 }
                 return codeBook;
             }

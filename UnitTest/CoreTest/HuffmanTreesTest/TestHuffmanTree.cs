@@ -67,9 +67,9 @@ namespace UnitTest.CoreTest.HuffmanTreesTest
 
                         break;
                     case "HuffmanTreeInstance1":
-                        Assert.AreEqual("00", tree.CodeBook['A']);
-                        Assert.AreEqual("01", tree.CodeBook['B']);
-                        Assert.AreEqual("1", tree.CodeBook['C']);
+                        Assert.AreEqual(new BitArray(new bool[] { false, false }), tree.CodeBook['A']); // 00
+                        Assert.AreEqual(new BitArray(new bool[] { false, true }), tree.CodeBook['B']); // 01
+                        Assert.AreEqual(new BitArray(new bool[] { true }), tree.CodeBook['C']);  // 1
                         break;
                     default:
                         break;
