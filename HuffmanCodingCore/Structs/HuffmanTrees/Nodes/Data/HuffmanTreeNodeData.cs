@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HuffmanCodingCore.Structs.HuffmanTrees.Nodes.Data
+﻿namespace HuffmanCodingCore.Structs.HuffmanTrees.Nodes.Data
 {
     public struct HuffmanTreeNodeData : IHuffmanTreeNodeData
     {
-        public ulong Weight { get; private set; }
+        public ulong Weight { get; }
 
         public bool? Code { get; set; }
 

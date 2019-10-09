@@ -1,44 +1,33 @@
-﻿using HuffmanCodingCore.Structs.BinaryTrees.Nodes;
-using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using HuffmanCodingCore.Structs.BinaryTrees.Nodes;
 
 namespace HuffmanCodingCore.Iterators.BinaryTreeIterators
 {
     /// <summary>
-    /// 中序遍历器
+    ///     中序遍历器
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    class InIterator<T> : IEnumerable<BinaryTreeNode<T>>
+    internal class InIterator<T> : IEnumerable<BinaryTreeNode<T>>
     {
-        public BinaryTreeNode<T> RootTreeNode { get; private set; }
         public InIterator(BinaryTreeNode<T> binaryTreeNode = null)
         {
             RootTreeNode = binaryTreeNode;
         }
+
+        public BinaryTreeNode<T> RootTreeNode { get; }
 
         public IEnumerator<BinaryTreeNode<T>> GetEnumerator()
         {
             if (RootTreeNode != null)
             {
                 if (RootTreeNode.LeftNode != null)
-                {
                     foreach (var node in RootTreeNode.LeftNode.InIterator)
-                    {
                         yield return node;
-                    }
-                }
                 yield return RootTreeNode;
                 if (RootTreeNode.RightNode != null)
-                {
                     foreach (var node in RootTreeNode.RightNode.InIterator)
-                    {
                         yield return node;
-                    }
-                }
             }
         }
 

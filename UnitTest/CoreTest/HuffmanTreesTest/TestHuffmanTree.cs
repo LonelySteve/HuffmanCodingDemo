@@ -13,7 +13,7 @@ namespace UnitTest.CoreTest.HuffmanTreesTest
         /// <summary>
         /// 空哈夫曼树
         /// </summary>
-        public static HuffmanTree<char> EmptyHuffmanTree => new HuffmanTree<char>();
+        public static HuffmanTree<char> EmptyHuffmanTree => HuffmanTree<char>.CreateFromWeightDictionary();
         /// <summary>
         /// 一个简单的哈夫曼树
         /// 权重字典：
@@ -67,9 +67,9 @@ namespace UnitTest.CoreTest.HuffmanTreesTest
 
                         break;
                     case "HuffmanTreeInstance1":
-                        Assert.AreEqual(new BitArray(new bool[] { false, false }), tree.CodeBook['A']); // 00
-                        Assert.AreEqual(new BitArray(new bool[] { false, true }), tree.CodeBook['B']); // 01
-                        Assert.AreEqual(new BitArray(new bool[] { true }), tree.CodeBook['C']);  // 1
+                        Assert.AreEqual(new BitArray(new[] { false, false }), tree.CodeBook['A']); // 00
+                        Assert.AreEqual(new BitArray(new[] { false, true }), tree.CodeBook['B']); // 01
+                        Assert.AreEqual(new BitArray(new[] { true }), tree.CodeBook['C']);  // 1
                         break;
                     default:
                         break;
