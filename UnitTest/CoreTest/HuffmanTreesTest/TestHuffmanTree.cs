@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using HuffmanCodingCore.Structs.HuffmanTrees;
 using System.Collections.Generic;
 using HuffmanCodingCore.Structs.HuffmanTrees.Nodes.Data;
+using HuffmanCodingCore.Utils;
 
 namespace UnitTest.CoreTest.HuffmanTreesTest
 {
@@ -67,9 +68,10 @@ namespace UnitTest.CoreTest.HuffmanTreesTest
 
                         break;
                     case "HuffmanTreeInstance1":
-                        Assert.AreEqual(new BitArray(new[] { false, false }), tree.CodeBook['A']); // 00
-                        Assert.AreEqual(new BitArray(new[] { false, true }), tree.CodeBook['B']); // 01
-                        Assert.AreEqual(new BitArray(new[] { true }), tree.CodeBook['C']);  // 1
+                        // BitArray 对象自带的Equals方法有问题，这里使用扩展的 Equal 方法来比较
+                        Assert.IsTrue( new BitArray(new[] { false, false }).Equal(tree.CodeBook['A']));// 00
+                        Assert.IsTrue( new BitArray(new []{false,true}).Equal(tree.CodeBook['B']) ); // 01
+                        Assert.IsTrue( new BitArray(new []{true}).Equal(tree.CodeBook['C'])); // 1
                         break;
                     default:
                         break;

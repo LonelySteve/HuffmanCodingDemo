@@ -43,6 +43,8 @@
   <ItemGroup>
     <Compile Include="BitStream\BitStreamReader.cs" />
     <Compile Include="BitStream\BitStreamWriter.cs" />
+    <Compile Include="Utils\BitArrayEqualityComparer.cs" />
+    <Compile Include="Utils\ByteArrayEqualityComparer.cs" />
     <Compile Include="Exceptions\DecodeException.cs" />
     <Compile Include="Exceptions\EncodeException.cs" />
     <Compile Include="CompressStreamWriter.cs" />

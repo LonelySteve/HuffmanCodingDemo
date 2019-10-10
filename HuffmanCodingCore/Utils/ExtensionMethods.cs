@@ -2,14 +2,17 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace HuffmanCodingCore.Utils
-{ 
+{
     /// <summary>
-    /// BitArray 扩展方法类
+    ///     BitArray 扩展方法类
     /// </summary>
     public static class BitArrayExtensionMethods
     {
+        private static readonly FieldInfo InternalArrayGetter = GetInternalArrayGetter();
+
         /// <summary>
         ///     转换到字节数组，对于不足一个字节的位将补零
         /// </summary>
@@ -70,7 +73,7 @@ namespace HuffmanCodingCore.Utils
         public static BitArray Before(this BitArray current, int index)
         {
             var values = new bool[current.Length];
-            current.CopyTo(values,0);
+            current.CopyTo(values, 0);
             return new BitArray(values.Skip(index).ToArray());
         }
 
@@ -79,6 +82,23 @@ namespace HuffmanCodingCore.Utils
             var values = new bool[current.Length];
             current.CopyTo(values, 0);
             return new BitArray(values.Reverse().Skip(current.Length - 1 - index).ToArray());
+        }
+
+        /// <summary>
+        ///     判断当前位数组与指定位数组是否相等
+        /// </summary>
+        /// <param name="current"></param>
+        /// <param name="otherBitArray">指定位数组</param>
+        /// <returns></returns>
+        public static bool Equal(this BitArray current, BitArray otherBitArray)
+        {
+            if (current.Length != otherBitArray.Length) return false;
+            // 一定一定要将被异或的位数组复制一份，这里异或是会改变被异或的位数组的值的！！！！！！调试到.NET源码才找到这个BUG啊 ！！
+            var tempArray = new BitArray(current);
+            // 通过将两个具有相同位数的位数组异或可以得知这两个位数组是否一致
+            var result = tempArray.Xor(otherBitArray);
+            // 如果异或结果中存在不为 0 (false) 的元素，则证明两个位数组是不一样的
+            return result.Cast<bool>().All(i => i == false);
         }
 
         #region   连接两个位数组 https://stackoverflow.com/questions/518513/is-there-any-simple-way-to-concatenate-two-bitarray-c-net
@@ -112,36 +132,35 @@ namespace HuffmanCodingCore.Utils
         }
 
         #endregion
-        /// <summary>
-        /// 判断当前位数组与指定位数组是否相等
-        /// </summary>
-        /// <param name="current"></param>
-        /// <param name="otherBitArray">指定位数组</param>
-        /// <returns></returns>
-        public static bool Equal(this BitArray current,BitArray otherBitArray)
+
+        #region https://stackoverflow.com/questions/3125676/generating-a-good-hash-code-gethashcode-for-a-bitarray
+
+        public static FieldInfo GetInternalArrayGetter()
         {
-            if (current.Length != otherBitArray.Length)
-            {
-                return false;
-            }
-            // 通过将两个具有相同位数的位数组异或可以得知这两个位数组是否一致
-            var result = current.Xor(otherBitArray);
-            // 如果异或结果中存在不为 0 (false) 的元素，则证明两个位数组是不一样的
-            return result.Cast<bool>().All(i=>i==false);
+            return typeof(BitArray).GetField("m_array", BindingFlags.NonPublic | BindingFlags.Instance);
         }
-        /// <summary>
-        /// 检测当前可迭代的位数组是否存在指定的位数组
-        /// </summary>
-        /// <param name="bitArrays"></param>
-        /// <param name="bitArray">指定的位数组</param>
-        /// <returns></returns>
-        public static bool Contain(this IEnumerable<BitArray> bitArrays, BitArray bitArray) => bitArrays.Any(bitArray.Equal);
+
+        public static int[] GetInternalArray(BitArray array)
+        {
+            return (int[]) InternalArrayGetter.GetValue(array);
+        }
+
+        public static IEnumerable<int> GetInternalValues(this BitArray array)
+        {
+            return GetInternalArray(array);
+        }
+
+        #endregion
     }
+
     /// <summary>
-    /// 一些其他的扩展方法
+    ///     一些其他的扩展方法
     /// </summary>
     public static class OtherExtensionMethods
     {
-        public static bool Contains(this IEnumerable<byte[]> current, byte[] target) => current.Any(target.SequenceEqual);
+        public static bool Contains(this IEnumerable<byte[]> current, byte[] target)
+        {
+            return current.Any(target.SequenceEqual);
+        }
     }
 }

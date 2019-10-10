@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using HuffmanCodingCore.BitStream;
 using HuffmanCodingCore.Exceptions;
 using HuffmanCodingCore.Structs.EncodeArgument;
 using HuffmanCodingCore.Structs.HuffmanTrees;
@@ -16,56 +17,8 @@ namespace HuffmanCodingCore
     /// <summary>
     ///     哈夫曼压缩二进制写入器，直接支持从一个流中读取数据计算字典然后写入至另一个流中
     /// </summary>
-    public class CompressStreamWriter : BinaryWriter
+    public class CompressStreamWriter : BitStreamWriter
     {
-        protected BitArray BufferedBitArray = new BitArray(8);
-        protected byte BufferedBitArrayActualLength { get; private set; }
-
-        /// <summary>
-        ///     清理当前编写器的所有缓冲区，使所有缓冲数据写入基础设备
-        /// </summary>
-        public override void Flush()
-        {
-            // 清空位数组缓存，即使位数组不足八位也要写入一个新的字节把数据丢到流里，不足的位补零
-            Write(BufferedBitArray.Append(new BitArray(8 - BufferedBitArrayActualLength, false)).ToBytes());
-            // 强制使位数组缓存实际长度记为 0
-            BufferedBitArrayActualLength = 0;
-            // 调用基类 Flush() 函数完成其他缓存数据的写入
-            base.Flush();
-        }
-
-        /// <summary>
-        ///     <para>向流中写入一个布尔数组</para>
-        ///     <para>注意：这个方法是按位写入布尔数组数据的，这也意味着它可能不会立即完全写入给定的布尔数组数据，如果需要立即完全写入给定布尔数组数据，可以使用<see cref="Flush" />方法</para>
-        /// </summary>
-        /// <param name="value"></param>
-        public void WriteBits(BitArray value)
-        {
-            // 计算 新写入的位数组 和 缓存的位数组 位数之和
-            var totalBitsNum = value.Length + BufferedBitArrayActualLength;
-            // 如果 新写入的位数组 和 缓存的位数组 位数之和还不够 8 位，则将它俩连接一起重新放回缓存
-            if (totalBitsNum < 8)
-            {
-                BufferedBitArray = BufferedBitArray.Append(value);
-                // 别忘了改变缓存的实际长度
-                BufferedBitArrayActualLength = (byte)totalBitsNum;
-            }
-            else // 对于位数之和大于 8 的情况，只需要把尾部不足 8 位的数据作为新的位缓存数组数据就行
-            {
-                var combinedBitArray = BufferedBitArray.Append(value);
-                var remainBitsNum = totalBitsNum % 8;
-                var tmpBoolArr = new bool[remainBitsNum];
-                // 将尾部不足 8 位的数据拷贝到临时布尔数组里
-                combinedBitArray.CopyTo(tmpBoolArr, totalBitsNum - remainBitsNum);
-                // 别忘了改变缓存的实际长度
-                BufferedBitArrayActualLength = (byte)remainBitsNum;
-                // 循环给位缓存数组重新赋值
-                for (var i = 0; i < tmpBoolArr.Length; i++)
-                    BufferedBitArray[i] = tmpBoolArr[i];
-                // 写拼接好的位数组，如果尾部有多出来不足 8 位的数据会被直接丢弃
-                Write(combinedBitArray.ToBytes());
-            }
-        }
         /// <summary>
         /// 使用指定的数据包装实例，压缩等级，加密类型和加密秘钥写入当前压缩流
         /// </summary>
@@ -92,12 +45,20 @@ namespace HuffmanCodingCore
             CheckCompressArgument(compressLevelFlag, encryptTypeFlag, key);
             // 判断数据包装器实际类型
             var dataType = (byte) (wrapper is FileStreamWrapper ? 1 : 0);
+            var beginActualOffset = OutStream.Position; // 有可能当前流并不是在最开始哦！
             WriteFileFormat(); // 写文件扩展信息
             WriteVersion(); // 写版本信息
+            Write(-1L); // 写压缩数据块总占用字节数，但是这个流程目前阶段是无法得知压缩数据块总占用字节数，所以这里暂时设置为 -1L
             WriteCopyright(); // 写版权信息
             Write(compressLevelFlag); // 写压缩级别
             Write(encryptTypeFlag); // 写加密类型
             Write(dataType); // 写数据类型 0-Stream 1-FileStream
+            
+            var compressDataBlockMetaData = new List<Tuple<long, byte>>();
+
+            var compressDataBlockStartPosition = OutStream.Position;
+            #region 压缩数据块信息写入
+
             // 根据数据类型的不同写字典数据（因为对于 FileSteam 类型的数据来说，字典是以所有数据为样本计算的，所以需要分开处理）
             if (dataType == 0) // Stream
             {
@@ -105,45 +66,73 @@ namespace HuffmanCodingCore
                 Debug.Assert(streamWrapper != null, nameof(streamWrapper) + " != null");
                 var weightDictionary = GetCodeBook(new[] {streamWrapper.BaseStream}, compressLevelFlag);
                 WriteCodeBook(weightDictionary); // 写字典
-                Write(streamWrapper.BaseStream.Length); // 写流长度信息
-                WriteCompressData(streamWrapper.BaseStream, weightDictionary, compressLevelFlag, encryptTypeFlag, key,out var remainBitsLength);  // 压缩写入原数据
-                Write(remainBitsLength); // 写不足的位信息
+                var compressDataByteCount =  WriteCompressDataBlock(streamWrapper.BaseStream, weightDictionary, compressLevelFlag, encryptTypeFlag, key,out var remainBitsLength);  // 压缩写入原数据
+                compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount,remainBitsLength));
             }
             else // FileStream
             {
                 var fileStreamWrapper = wrapper as FileStreamWrapper;
                 Debug.Assert(fileStreamWrapper != null, nameof(fileStreamWrapper) + " != null");
                 var weightDictionary =
-                    GetCodeBook(fileStreamWrapper.FileStreams.Cast<Stream>().ToArray(), compressLevelFlag);
+                    GetCodeBook(fileStreamWrapper.FileStreams.Select(kps=>kps.Value).Cast<Stream>().ToArray(), compressLevelFlag);
                 WriteCodeBook(weightDictionary); // 写字典
-                Write(fileStreamWrapper.FileStreams.Count); // 写文件数量
                 // 循环写每个文件流
                 foreach (var kps in fileStreamWrapper.FileStreams)
                 {
-                    Write(kps.Value.Length); // 写流长度信息
-                    WriteString(kps.Key); // 写相对路径
-                    WriteCompressData(kps.Value, weightDictionary, compressLevelFlag, encryptTypeFlag, key,out var remainBitsLength); // 压缩写入原数据
-                    Write(remainBitsLength); // 写不足的位信息
+                    Write(kps.Key); // 写相对路径
+                    var compressDataByteCount = WriteCompressDataBlock(kps.Value, weightDictionary, compressLevelFlag, encryptTypeFlag, key,out var remainBitsLength); // 压缩写入原数据
+                    compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount, remainBitsLength));
                 }
+            }
+
+            #endregion
+            var compressDataBlockEndPosition = OutStream.Position;
+
+            // 写压缩数据块总占用字节数
+            WriteCompressDataBlockByteCount(compressDataBlockEndPosition - compressDataBlockStartPosition, (int)beginActualOffset);
+            // 写压缩数据块信息
+            WriteCompressDataBlockMetaData(compressDataBlockMetaData);
+        }
+
+        private void WriteCompressDataBlockByteCount(long count,int beginActualOffset)
+        {
+            var currentStreamPosition = OutStream.Position;
+            OutStream.Seek(beginActualOffset + 4, SeekOrigin.Begin);  // NOTE 类继承过来的 Seek() 方法 偏移量居然不是 long 类型 = =，不要用它
+            Write(count);
+            OutStream.Seek(currentStreamPosition, SeekOrigin.Begin);
+        }
+
+        private void WriteCompressDataBlockMetaData(IReadOnlyCollection<Tuple<long, byte>> compressDataBlockMetaData)
+        {
+            // 写压缩数据块数量
+            Write(compressDataBlockMetaData.Count);
+            foreach (var streamInfoTuple in compressDataBlockMetaData)
+            {
+                // 写压缩数据块的字节数
+                Write(streamInfoTuple.Item1);
+                // 写压缩数据块的不满八位的剩余位数
+                Write(streamInfoTuple.Item2);
             }
         }
 
         /// <summary>
         ///     检查编码参数
         /// </summary>
-        /// <param name="compressLevel"></param>
-        /// <param name="encryptType"></param>
+        /// <param name="compressLevelFlag"></param>
+        /// <param name="encryptTypeFlag"></param>
         /// <param name="key"></param>
-        private void CheckCompressArgument(byte compressLevel, byte encryptType, byte[] key)
+        private void CheckCompressArgument(byte compressLevelFlag, byte encryptTypeFlag, byte[] key)
         {
-            if (Array.IndexOf(new byte[] {0, 1}, encryptType) == -1)
+            if(compressLevelFlag == 0)
+                throw  new EncodeArgumentException("compressLevelFlag");
+            if (Array.IndexOf(new byte[] {0, 1}, encryptTypeFlag) == -1)
                 throw new EncodeArgumentException("encryptTypeFlag");
-            if (encryptType != 0 && key.Length != 160) throw new EncodeArgumentException("key");
+            if (encryptTypeFlag != 0 && key.Length != 160) throw new EncodeArgumentException("key");
         }
 
         protected static Dictionary<byte[], BitArray> GetCodeBook(IEnumerable<Stream> streams, byte compressLevel)
         {
-            var weightDictionary = new Dictionary<byte[], ulong>();
+            var weightDictionary = new Dictionary<byte[], ulong>(new ByteArrayEqualityComparer());
 
             foreach (var stream in streams)
             {
@@ -188,32 +177,6 @@ namespace HuffmanCodingCore
 
         #endregion
 
-        #region 构造函数
-
-        public CompressStreamWriter()
-        {
-            BufferedBitArrayActualLength = 0;
-        }
-
-        public CompressStreamWriter(Stream output) : base(output)
-        {
-            BufferedBitArrayActualLength = 0;
-        }
-
-        public CompressStreamWriter(Stream output, Encoding encoding) : base(output, encoding)
-        {
-            BufferedBitArrayActualLength = 0;
-        }
-
-
-        public CompressStreamWriter(Stream output, Encoding encoding, bool leaveOpen) : base(output, encoding,
-            leaveOpen)
-        {
-            BufferedBitArrayActualLength = 0;
-        }
-
-        #endregion
-
         #region 受保护的写入方法
 
         /// <summary>
@@ -227,13 +190,13 @@ namespace HuffmanCodingCore
         /// <param name="key">加密秘钥</param>
         /// <param name="remainBufferBitArrayLength">编码时不足八位而强行补零的位数</param>
         /// <returns></returns>
-        protected long WriteCompressData(Stream value, IReadOnlyDictionary<byte[], BitArray> codeBook,
+        protected long WriteCompressDataBlock(Stream value, IReadOnlyDictionary<byte[], BitArray> codeBook,
             byte compressLevelFlag, byte encryptTypeFlag, byte[] key,out byte remainBufferBitArrayLength)
         {
             // 写 Hash 值
             WriteHashData(value);
             // 记住未写压缩数据是当前压缩流的位置
-            var currentPosition = BaseStream.Position;
+            var currentPosition = OutStream.Position;
             // 循环压缩写入指定流的数据
             value.Seek(0, SeekOrigin.Begin);
             while (value.Position < value.Length)
@@ -253,7 +216,8 @@ namespace HuffmanCodingCore
  
                 // TODO 实现加密
             }
-            remainBufferBitArrayLength = BufferedBitArrayActualLength;
+
+            remainBufferBitArrayLength = (byte)BitsBufferActualLength;
             // 将当前压缩流所在位置减去未写压缩数据时所在位置就能得到压缩后数据占用的字节数
             return BaseStream.Position - currentPosition; // 调用 BaseStream 时 会调用 Flush() 函数完成 位数组缓存的 写入
         }
@@ -262,17 +226,15 @@ namespace HuffmanCodingCore
         {
             using (var sha1 = new SHA1CryptoServiceProvider())
             {
+                value.Seek(0, SeekOrigin.Begin);
                 var hashBytes = sha1.ComputeHash(value);
+                // 写 hash 数据占用的字节数
+                Write7BitEncodedInt(hashBytes.Length);
                 Write(hashBytes);
             }
         }
 
-        protected void WriteString(string str)
-        {
-            Write(str.Length);
-            Write(str);
-        }
-
+        
         protected void WriteFileFormat()
         {
             Write(FileFormat.ToCharArray());
@@ -304,24 +266,26 @@ namespace HuffmanCodingCore
                 Write7BitEncodedInt(kps.Value.Length);
                 // 写编码数据
                 WriteBits(kps.Value);
-                // 缺失位数补零
                 Flush();
             }
         }
 
         #endregion
-    }
 
-    class ByteArrayEqualityComparer : IEqualityComparer<byte[]>
-    {
-        public bool Equals(byte[] x, byte[] y)
+        #region 构造函数
+
+        public CompressStreamWriter(Stream output) : base(output)
         {
-            return x != null && y != null ? x.SequenceEqual(y) : x == y;
         }
 
-        public int GetHashCode(byte[] obj)
+        public CompressStreamWriter(Stream output, Encoding encoding) : base(output, encoding)
         {
-            return obj.Sum(b => b.GetHashCode());
         }
+
+        public CompressStreamWriter(Stream output, Encoding encoding, bool leaveOpen) : base(output, encoding, leaveOpen)
+        {
+        }
+
+        #endregion
     }
 }

@@ -2,15 +2,19 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
+using HuffmanCodingCore.BitStream;
 using HuffmanCodingCore.Exceptions;
+using HuffmanCodingCore.Utils;
 
 namespace HuffmanCodingCore
 {
     /// <summary>
     /// 解压缩读取器
     /// </summary>
-    public class CompressStreamReader : BinaryReader
+    public class CompressStreamReader : BitStreamReader
     {
         #region 只读字段
 
@@ -29,123 +33,159 @@ namespace HuffmanCodingCore
 
         #endregion
 
-        protected BitArray BufferedBitArray = new BitArray(8);
-        protected byte BufferedBitArrayActualLength { get; private set; }
+        
         public CompressStreamReader(Stream input) : base(input)
         {
-            BufferedBitArrayActualLength = 0;
+           
         }
 
         public CompressStreamReader(Stream input, Encoding encoding) : base(input, encoding)
         {
-            BufferedBitArrayActualLength = 0;
+             
         }
 
         public CompressStreamReader(Stream input, Encoding encoding, bool leaveOpen) : base(input, encoding, leaveOpen)
         {
-            BufferedBitArrayActualLength = 0;
+             
         }
 
-        public DataWrapper Read(byte[] key=null,Func<Stream> onStreamWrapperCallback = null, Func<string, FileStream> onFileStreamWrapperCallback = null)
+        public void Read(Func<Stream> onStreamWrapperCallback = null, Func<string, FileStream> onFileStreamWrapperCallback = null, byte[] key=null,bool autoCloseOutputFileStream= true) 
         {
             // 读取文件格式标识
             ReadFileFormat();
             ReadVersion();
+            var compressDataBlockByteCount = ReadInt64();
             ReadCopyRight();
             var compressLevelFlag = ReadByte();
             var encryptTypeFlag = ReadByte();
             var dataTypeFlag = ReadByte();
+
+            var currentPosition = BaseStream.Position;
+            BaseStream.Seek(compressDataBlockByteCount, SeekOrigin.Current);
+            var compressDataBlockMetaData = ReadCompressDataBlockMetaData().ToList();
+            BaseStream.Seek(currentPosition, SeekOrigin.Begin);
+
             if (dataTypeFlag == 0) // 0-Stream
             {
                 if (onStreamWrapperCallback != null)
                 {
-                    var outputStream = onStreamWrapperCallback();
-                    var wrapper = new StreamWrapper(outputStream);
                     var codeBook =  ReadCodeBook();  // 获取编码字典
-                    var streamLength = ReadInt64();  // 获取压缩数据字节长度
-                    // Seek 到指示剩余位的处，读取不足位个数
-                    BaseStream.Seek(streamLength, SeekOrigin.Current);
-                    var remainBitsLength = ReadByte();
-                    ReadCompressData(wrapper.BaseStream,codeBook, compressLevelFlag, encryptTypeFlag, key, remainBitsLength);
-                    return wrapper;
+                    var metaData = compressDataBlockMetaData.First(); // 对于这种情形就有且只有一种压缩数据块元数据
+                    ReadCompressDataBlock(onStreamWrapperCallback(), metaData.Item1, metaData.Item2,codeBook,compressLevelFlag,encryptTypeFlag,key);
                 }
             }else if (dataTypeFlag == 1) // 0-FileStream
             {
                 if (onFileStreamWrapperCallback != null)
                 {
-                    Dictionary<string, FileStream> fileStreamsDictionary = new Dictionary<string, FileStream>();
                     var codeBook = ReadCodeBook();  // 获取编码字典
-                    while (BaseStream.Position < BaseStream.Length)
+                    foreach (var metaData in compressDataBlockMetaData)
                     {
-                        var fileRelativePath = ReadString(); // 获取文件相对路径
+                        // 获取文件相对路径
+                        var fileRelativePath = ReadString(); 
+                        // 获取输出文件流
                         var fileStream = onFileStreamWrapperCallback(fileRelativePath);
-                        var streamLength = ReadInt64(); // 获取压缩数据字节长度
-                        // Seek 到指示剩余位的处，读取不足位个数
-                        BaseStream.Seek(streamLength, SeekOrigin.Current);
-                        var remainBitsLength = ReadByte();
-                        ReadCompressData(fileStream, codeBook, compressLevelFlag, encryptTypeFlag, key, remainBitsLength);
-                        fileStreamsDictionary[fileRelativePath] = fileStream;
+                        // 读取压缩数据块
+                        ReadCompressDataBlock(fileStream, metaData.Item1, metaData.Item2,codeBook,compressLevelFlag,encryptTypeFlag,key);
+                        if (autoCloseOutputFileStream)
+                        {
+                            fileStream.Dispose();
+                        }
                     }
-                    return new FileStreamWrapper(fileStreamsDictionary);
                 }
             }
-            return null;
         }
 
-        private void ReadCompressData(long streamLength, IReadOnlyDictionary<byte[], BitArray> codeBook,
-            byte compressLevel, byte encryptType, byte[] key, byte remainBitsLength)
+        private IEnumerable<Tuple<long, byte>> ReadCompressDataBlockMetaData()
         {
-            var hash = ReadHashData();
-            // 循环读取
+            var compressDataBlockCount = ReadInt32();
+            var retList = new List<Tuple<long, byte>>(compressDataBlockCount);
+            
+            // 循环获取压缩数据块元数据
+            for (int i = 0; i < compressDataBlockCount; i++)
+            {
+                retList.Add(new Tuple<long, byte>(ReadInt64(),ReadByte()));
+            }
+            return retList;
         }
 
+        private void ReadCompressDataBlock(Stream outputStream, long compressDataBytes, byte remainBitsCount,IReadOnlyDictionary<BitArray,byte[]> codeBook,
+            byte compressLevel, byte encryptType, byte[] key)
+        {
+            // 读取 hash 数据
+            var srcHashValue = ReadHashData();
+            // 创建一个 List 用于读取编码位的缓存
+            var encodedBitsBuff = new List<bool>();
+
+            if (remainBitsCount != 0)
+                compressDataBytes--;
+
+            for (var i = 0; i < compressDataBytes * 8 + remainBitsCount; i++)
+            {
+                var bit = ReadBit();
+                encodedBitsBuff.Add(bit);
+                var assumptiveValidBits = new BitArray(encodedBitsBuff.ToArray());
+                if (codeBook.TryGetValue(assumptiveValidBits, out var validBytes))
+                {
+                    outputStream.Write(validBytes, 0, validBytes.Length);
+                    // 清空读取编码位用到的栈缓存
+                    encodedBitsBuff.Clear();
+                }
+            }
+
+            // 理论上栈缓存应该刚好被最后一次解码给清空，这里验证一下，如果不是这样很有可能解码出问题了
+            if (encodedBitsBuff.Count != 0)
+            {
+                throw new DecodeException();
+            }
+            // TODO 实现解密
+            // 通过 Hash 检验输出流是否有效
+            using (var sha1 = new SHA1CryptoServiceProvider())
+            {
+                outputStream.Seek(0, SeekOrigin.Begin);
+                var currentHashValue = sha1.ComputeHash(outputStream);
+                if (!new ByteArrayEqualityComparer().Equals(srcHashValue,currentHashValue))
+                {
+                    throw new HashMismatchException();
+                }
+            }
+        }
+
+        // ReSharper disable once ReturnTypeCanBeEnumerable.Local
         private byte[] ReadHashData()
         {
-            throw new NotImplementedException();
+            // 读 hash 数据占用的字节数
+            var hashByteLength = Read7BitEncodedInt();
+            // 读 hash 数据
+            var hashBytes = ReadBytes(hashByteLength);
+            return hashBytes;
         }
 
-        private Dictionary<byte[],BitArray> ReadCodeBook()
+        private Dictionary<BitArray,byte[]> ReadCodeBook()
         {
+            var retVal = new Dictionary<BitArray,byte[]>(new BitArrayEqualityComparer() );
             var kpsCount = Read7BitEncodedInt(); // 获取键值对数量
-            for (int i = 0; i < kpsCount; i++)
+            for (var i = 0; i < kpsCount; i++)
             {
                 // 读被编码字节长度
                 var encodedByteLength = Read7BitEncodedInt();
-                
+                // 读被编码字节数据
+                var encodedBytes = ReadBytes(encodedByteLength);
+                // 读编码位数
+                var encodedBitCount = Read7BitEncodedInt();
+                // 读编码数据
+                var encodedBits = ReadBits(encodedBitCount);
+                // 对于可能存在的填充数据就丢掉啦~
+                SoftClearBitsBuffer();
+                retVal[encodedBits] = encodedBytes;
             }
+
+            return retVal;
         }
+ 
 
-        public override byte ReadByte()
+        private string ReadCopyRight()
         {
-            if (BufferedBitArrayActualLength == 0)
-            {
-                return base.ReadByte();
-            }
-
-            var newByte = base.ReadByte();
-            
-        }
-
-        public bool ReadBit()
-        {
-            throw new NotImplementedException();
-        }
-
-        public BitArray ReadBits(byte num)
-        {
-            throw new NotImplementedException();
-        }
-
-
-        private void ReadCopyRight()
-        {
-            var copyRightString  = ReadString();
-            var encoding = new UTF8Encoding();
-            var copyRightBytes = (IEnumerable<byte>)encoding.GetBytes(copyRightString);
-            if (!copyRightBytes.Equals(Copyright))
-            {
-                throw new CopyRightMismatchException();
-            }
+            return ReadString();
         }
 
         private void ReadVersion()

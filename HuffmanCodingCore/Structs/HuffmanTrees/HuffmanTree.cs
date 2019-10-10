@@ -58,9 +58,9 @@ namespace HuffmanCodingCore.Structs.HuffmanTrees
         /// <returns></returns>
         public static HuffmanTree<T> CreateFromWeightDictionary(Dictionary<T, ulong> weightDict = null, IEqualityComparer<T> keyComparer = null)
         {
-            // 如果权重字典为空，则新建一个空的字典给权重字典形参
-            if (weightDict == null)
-                weightDict = new Dictionary<T, ulong>();
+            // 如果权重字典为空，则直接返回一个空树
+            if (weightDict == null || weightDict.Count == 0)
+                return new HuffmanTree<T>(keyComparer);
             // 使用权重字典的数据构造一系列哈夫曼叶子结点
             var huffmanNodes = weightDict.Select(kps =>
                 new HuffmanTreeNode(new HuffmanTreeLeafNodeData<T>(kps.Key, kps.Value))).ToList();
