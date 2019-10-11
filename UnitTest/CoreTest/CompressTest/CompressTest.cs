@@ -43,7 +43,7 @@ namespace UnitTest.CoreTest.CompressTest
 
             using (var sw = new StreamWriter("test_file_2.txt"))
             {
-                sw.Write("");
+                sw.Write("这是文本文件测试2！！！");
             }
 
 
@@ -64,7 +64,7 @@ namespace UnitTest.CoreTest.CompressTest
             var compressStream = new FileStream(saveFileName + ".test.huf", FileMode.Create);
             compressStream.Seek(0, SeekOrigin.Begin);
             var cw = new CompressStreamWriter(compressStream);
-            cw.Write(new StreamWrapper(input), compressLevelFlag, (int)EncryptType.None); 
+            cw.Write(new StreamWrapper(input), compressLevelFlag, (int) EncryptType.None);
             compressStream.Seek(0, SeekOrigin.Begin);
             var cr = new CompressStreamReader(compressStream);
             cr.Read(() => output);

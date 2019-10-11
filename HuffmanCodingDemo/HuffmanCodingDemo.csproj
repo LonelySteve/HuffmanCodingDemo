@@ -96,5 +96,11 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HuffmanCodingCore\HuffmanCodingCore.csproj">
+      <Project>{66719aed-47c3-4b07-bdd7-95f16f69d9d6}</Project>
+      <Name>HuffmanCodingCore</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
