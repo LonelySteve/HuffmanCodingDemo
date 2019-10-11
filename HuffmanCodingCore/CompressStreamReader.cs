@@ -148,6 +148,8 @@ namespace HuffmanCodingCore
                     throw new HashMismatchException();
                 }
             }
+            // 记得别忘了清空缓存，读下一个压缩数据块的时候不能带上上次的缓存的
+            HardClearBitsBuffer();
         }
 
         // ReSharper disable once ReturnTypeCanBeEnumerable.Local
