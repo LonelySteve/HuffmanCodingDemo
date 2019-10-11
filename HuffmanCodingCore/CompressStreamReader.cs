@@ -97,13 +97,13 @@ namespace HuffmanCodingCore
 
         private IEnumerable<Tuple<long, byte>> ReadCompressDataBlockMetaData()
         {
-            var compressDataBlockCount = ReadInt32();
+            var compressDataBlockCount = Read7BitEncodedInt();
             var retList = new List<Tuple<long, byte>>(compressDataBlockCount);
             
             // 循环获取压缩数据块元数据
             for (int i = 0; i < compressDataBlockCount; i++)
             {
-                retList.Add(new Tuple<long, byte>(ReadInt64(),ReadByte()));
+                retList.Add(new Tuple<long, byte>(Read7BitEncodedInt(), ReadByte()));
             }
             return retList;
         }

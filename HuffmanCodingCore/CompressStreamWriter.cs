@@ -105,11 +105,11 @@ namespace HuffmanCodingCore
         private void WriteCompressDataBlockMetaData(IReadOnlyCollection<Tuple<long, byte>> compressDataBlockMetaData)
         {
             // 写压缩数据块数量
-            Write(compressDataBlockMetaData.Count);
+            Write7BitEncodedInt(compressDataBlockMetaData.Count);
             foreach (var streamInfoTuple in compressDataBlockMetaData)
             {
                 // 写压缩数据块的字节数
-                Write(streamInfoTuple.Item1);
+                Write7BitEncodedInt((int)streamInfoTuple.Item1);
                 // 写压缩数据块的不满八位的剩余位数
                 Write(streamInfoTuple.Item2);
             }
