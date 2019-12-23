@@ -36,7 +36,7 @@ namespace HuffmanCodingDemo
             var encoding = new UTF8Encoding();
             try
             {
-                using (var unCompressStream = new MemoryStream(encoding.GetBytes(textbox_uncompressed.Text)))
+                using (var unCompressStream = new MemoryStream(encoding.GetBytes(TextboxUncompressed.Text)))
                 {
                     using (var ms = new MemoryStream())
                     {
@@ -45,7 +45,7 @@ namespace HuffmanCodingDemo
                             cw.Write(new StreamWrapper(unCompressStream));
                         }
                         ms.Seek(0, SeekOrigin.Begin);
-                        textbox_compressed.Text = Convert.ToBase64String(ms.GetBuffer());
+                        TextboxCompressed.Text = Convert.ToBase64String(ms.GetBuffer());
                     }
                 }
             }
@@ -62,7 +62,7 @@ namespace HuffmanCodingDemo
             {
                 using (var unCompressStream = new MemoryStream())
                 {
-                    using (var compressStream = new MemoryStream(Convert.FromBase64String(textbox_compressed.Text)))
+                    using (var compressStream = new MemoryStream(Convert.FromBase64String(TextboxCompressed.Text)))
                     {
                         using (var cr = new CompressStreamReader(compressStream))
                         {
@@ -70,7 +70,7 @@ namespace HuffmanCodingDemo
                         }
                     }
                     unCompressStream.Seek(0, SeekOrigin.Begin);
-                    textbox_uncompressed.Text = encoding.GetString(unCompressStream.GetBuffer());
+                    TextboxUncompressed.Text = encoding.GetString(unCompressStream.GetBuffer());
                 }
             }
             catch (Exception ex)
