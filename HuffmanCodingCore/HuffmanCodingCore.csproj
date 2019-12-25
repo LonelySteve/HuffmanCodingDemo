@@ -56,7 +56,6 @@
     <Compile Include="Structs\EncodeArgument\CompressLevel.cs" />
     <Compile Include="Structs\EncodeArgument\EncryptType.cs" />
     <Compile Include="CompressStreamReader.cs" />
-    <Compile Include="Utils\StreamWrapper.cs" />
     <Compile Include="Structs\BinaryTrees\BinaryTree.cs" />
     <Compile Include="Structs\BinaryTrees\Nodes\BinaryTreeNode.cs" />
     <Compile Include="Structs\HuffmanTrees\HuffmanTree.cs" />

@@ -30,7 +30,7 @@ namespace HuffmanCodingDemo
                     {
                         using (var cw = new CompressStreamWriter(ms, encoding, true))
                         {
-                            cw.Write(new StreamWrapper(unCompressStream));
+                            cw.Write(unCompressStream);
                         }
 
                         ms.Seek(0, SeekOrigin.Begin);
@@ -105,7 +105,7 @@ namespace HuffmanCodingDemo
                     {
                         using (var cw = new CompressStreamWriter(outputCompressStream))
                         {
-                            cw.Write(new FileStreamWrapper(fileStreamWithName));
+                            cw.Write(fileStreamWithName);
                         }
                     }
 

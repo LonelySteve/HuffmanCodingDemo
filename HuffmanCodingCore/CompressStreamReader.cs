@@ -28,8 +28,8 @@ namespace HuffmanCodingCore
         {
         }
 
-        public void Read(Func<Stream> onStreamWrapperCallback = null,
-            Func<string, FileStream> onFileStreamWrapperCallback = null, byte[] key = null,
+        public void Read(Func<Stream> onStreamCallback = null,
+            Func<string, FileStream> onFileStreamCallback = null, byte[] key = null,
             bool autoCloseOutputFileStream = true)
         {
             // 读取文件格式标识
@@ -48,17 +48,17 @@ namespace HuffmanCodingCore
 
             if (dataTypeFlag == 0) // 0-Stream
             {
-                if (onStreamWrapperCallback != null)
+                if (onStreamCallback != null)
                 {
                     var codeBook = ReadCodeBook(); // 获取编码字典
                     var metaData = compressDataBlockMetaData.First(); // 对于这种情形就有且只有一种压缩数据块元数据
-                    ReadCompressDataBlock(onStreamWrapperCallback(), metaData.Item1, metaData.Item2, codeBook,
+                    ReadCompressDataBlock(onStreamCallback(), metaData.Item1, metaData.Item2, codeBook,
                         compressLevelFlag, encryptTypeFlag, key);
                 }
             }
             else if (dataTypeFlag == 1) // 0-FileStream
             {
-                if (onFileStreamWrapperCallback != null)
+                if (onFileStreamCallback != null)
                 {
                     var codeBook = ReadCodeBook(); // 获取编码字典
                     foreach (var metaData in compressDataBlockMetaData)
@@ -66,7 +66,7 @@ namespace HuffmanCodingCore
                         // 获取文件相对路径
                         var fileRelativePath = ReadString();
                         // 获取输出文件流
-                        var fileStream = onFileStreamWrapperCallback(fileRelativePath);
+                        var fileStream = onFileStreamCallback(fileRelativePath);
                         // 读取压缩数据块
                         ReadCompressDataBlock(fileStream, metaData.Item1, metaData.Item2, codeBook, compressLevelFlag,
                             encryptTypeFlag, key);

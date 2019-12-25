@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -20,85 +19,125 @@ namespace HuffmanCodingCore
     public class CompressStreamWriter : BitStreamWriter
     {
         /// <summary>
-        ///     使用指定的数据包装实例，压缩等级，加密类型和加密秘钥写入当前压缩流
+        ///     按指定的压缩等级，加密类型及秘钥压缩写入指定流
         /// </summary>
-        /// <param name="wrapper">数据包装实例</param>
+        /// <param name="stream">要压缩写入的流</param>
         /// <param name="compressLevel">压缩等级</param>
         /// <param name="encryptType">加密类型</param>
         /// <param name="key">加密秘钥</param>
-        public void Write(DataWrapper wrapper, CompressLevel compressLevel = CompressLevel.Normal,
+        public void Write(Stream stream, CompressLevel compressLevel = CompressLevel.Normal,
             EncryptType encryptType = EncryptType.None, byte[] key = null)
         {
-            Write(wrapper, (byte) compressLevel, (byte) encryptType, key);
+            Write(stream, (byte) compressLevel, (byte) encryptType, key);
         }
 
         /// <summary>
-        ///     使用指定的数据包装实例，压缩等级标志，加密类型标志和加密秘钥写入当前压缩流
+        ///     按指定的压缩等级，加密类型及压缩秘钥写入文件流字典
         /// </summary>
-        /// <param name="wrapper">数据包装实例</param>
+        /// <param name="fileStreams">文件流字典，其键值指示了文件的相对路径</param>
+        /// <param name="compressLevel">压缩等级</param>
+        /// <param name="encryptType">加密类型</param>
+        /// <param name="key">加密秘钥</param>
+        public void Write(Dictionary<string, FileStream> fileStreams,
+            CompressLevel compressLevel = CompressLevel.Normal,
+            EncryptType encryptType = EncryptType.None, byte[] key = null)
+        {
+            Write(fileStreams, (byte) compressLevel, (byte) encryptType, key);
+        }
+
+        /// <summary>
+        ///     按指定的压缩等级，加密类型及秘钥压缩写入指定流
+        /// </summary>
+        /// <param name="stream">要压缩写入的流</param>
         /// <param name="compressLevelFlag">压缩等级标志</param>
         /// <param name="encryptTypeFlag">加密类型标志</param>
         /// <param name="key">加密秘钥</param>
-        public void Write(DataWrapper wrapper, byte compressLevelFlag, byte encryptTypeFlag,
-            byte[] key = null)
+        public void Write(Stream stream, byte compressLevelFlag, byte encryptTypeFlag, byte[] key = null)
         {
-            // 检查输入的参数是否有效
-            CheckCompressArgument(compressLevelFlag, encryptTypeFlag, key);
-            // 判断数据包装器实际类型
-            var dataType = (byte) (wrapper is FileStreamWrapper ? 1 : 0);
             var beginActualOffset = OutStream.Position; // 有可能当前流并不是在最开始哦！
-            WriteFileFormat(); // 写文件扩展信息
-            WriteVersion(); // 写版本信息
-            Write(-1L); // 写压缩数据块总占用字节数，但是这个流程目前阶段是无法得知压缩数据块总占用字节数，所以这里暂时设置为 -1L
-            WriteCopyright(); // 写版权信息
-            Write(compressLevelFlag); // 写压缩级别
-            Write(encryptTypeFlag); // 写加密类型
-            Write(dataType); // 写数据类型 0-Stream 1-FileStream
+            // 写头部
+            WriteHeader(false, compressLevelFlag, encryptTypeFlag, key);
 
-            var compressDataBlockMetaData = new List<Tuple<long, byte>>();
+            #region 写压缩数据块
 
             var compressDataBlockStartPosition = OutStream.Position;
 
-            #region 压缩数据块信息写入
-
-            // 根据数据类型的不同写字典数据（因为对于 FileSteam 类型的数据来说，字典是以所有数据为样本计算的，所以需要分开处理）
-            if (dataType == 0) // Stream
-            {
-                var streamWrapper = wrapper as StreamWrapper;
-                Debug.Assert(streamWrapper != null, nameof(streamWrapper) + " != null");
-                var weightDictionary = GetCodeBook(new[] {streamWrapper.BaseStream}, compressLevelFlag);
-                WriteCodeBook(weightDictionary); // 写字典
-                var compressDataByteCount = WriteCompressDataBlock(streamWrapper.BaseStream, weightDictionary,
-                    compressLevelFlag, encryptTypeFlag, key, out var remainBitsLength); // 压缩写入原数据
-                compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount, remainBitsLength));
-            }
-            else // FileStream
-            {
-                var fileStreamWrapper = wrapper as FileStreamWrapper;
-                Debug.Assert(fileStreamWrapper != null, nameof(fileStreamWrapper) + " != null");
-                var weightDictionary =
-                    GetCodeBook(fileStreamWrapper.FileStreams.Select(kps => kps.Value).Cast<Stream>().ToArray(),
-                        compressLevelFlag);
-                WriteCodeBook(weightDictionary); // 写字典
-                // 循环写每个文件流
-                foreach (var kps in fileStreamWrapper.FileStreams)
-                {
-                    Write(kps.Key); // 写相对路径
-                    var compressDataByteCount = WriteCompressDataBlock(kps.Value, weightDictionary, compressLevelFlag,
-                        encryptTypeFlag, key, out var remainBitsLength); // 压缩写入原数据
-                    compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount, remainBitsLength));
-                }
-            }
-
-            #endregion
+            var codeBook = GetCodeBook(new[] {stream}, compressLevelFlag);
+            // 写字典
+            WriteCodeBook(codeBook);
+            // 压缩写入原数据
+            var compressDataByteCount = WriteCompressDataBlock(stream, codeBook, compressLevelFlag, encryptTypeFlag,
+                key, out var remainBitsLength);
 
             var compressDataBlockEndPosition = OutStream.Position;
 
-            // 写压缩数据块总占用字节数
+            #endregion
+
+            // 写压缩数据块总占用字节数（此步骤将 Seek 至该方法开始写入头部位置之后4个字节的位置再写入8个字节的数据）
+            WriteCompressDataBlockByteCount(compressDataBlockEndPosition - compressDataBlockStartPosition,
+                (int) beginActualOffset);
+            // 写压缩数据块信息
+            WriteCompressDataBlockMetaData(new[] {new Tuple<long, byte>(compressDataByteCount, remainBitsLength)});
+        }
+
+        /// <summary>
+        ///     按指定的压缩等级，加密类型及压缩秘钥写入文件流字典
+        /// </summary>
+        /// <param name="fileStreams">文件流字典，其键值指示了文件的相对路径</param>
+        /// <param name="compressLevelFlag">压缩等级标志</param>
+        /// <param name="encryptTypeFlag">加密类型标志</param>
+        /// <param name="key">加密秘钥</param>
+        public void Write(Dictionary<string, FileStream> fileStreams, byte compressLevelFlag, byte encryptTypeFlag,
+            byte[] key = null)
+        {
+            var beginActualOffset = OutStream.Position; // 有可能当前流并不是在最开始哦！
+            // 写头部
+            WriteHeader(true, compressLevelFlag, encryptTypeFlag, key);
+
+
+            var compressDataBlockMetaData = new List<Tuple<long, byte>>();
+
+            #region 写压缩数据块
+
+            var compressDataBlockStartPosition = OutStream.Position;
+
+            var codeBook =
+                GetCodeBook(fileStreams.Select(kps => kps.Value).Cast<Stream>().ToArray(),
+                    compressLevelFlag);
+            // 写字典
+            WriteCodeBook(codeBook);
+            // 循环写每个文件流
+            foreach (var kps in fileStreams)
+            {
+                Write(kps.Key); // 写相对路径
+                var compressDataByteCount = WriteCompressDataBlock(kps.Value, codeBook, compressLevelFlag,
+                    encryptTypeFlag, key, out var remainBitsLength); // 压缩写入原数据
+                // 记录压缩数据块元数据
+                compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount, remainBitsLength));
+            }
+
+            var compressDataBlockEndPosition = OutStream.Position;
+
+            #endregion
+
+            // 写压缩数据块总占用字节数（此步骤将 Seek 至该方法开始写入头部位置之后4个字节的位置再写入8个字节的数据）
             WriteCompressDataBlockByteCount(compressDataBlockEndPosition - compressDataBlockStartPosition,
                 (int) beginActualOffset);
             // 写压缩数据块信息
             WriteCompressDataBlockMetaData(compressDataBlockMetaData);
+        }
+
+        protected void WriteHeader(bool isFileStream, byte compressLevelFlag, byte encryptTypeFlag, byte[] key = null)
+        {
+            // 检查输入的参数是否有效
+            CheckCompressArgument(compressLevelFlag, encryptTypeFlag, key);
+            WriteFileFormat(); // 写文件扩展信息
+            WriteVersion(); // 写版本信息
+            Write(-1L); // 写压缩数据块总占用字节数，但是这个流程目前阶段是无法得知压数据块总占用字节数，所以这里暂时设置为 -1L
+            WriteCopyright(); // 写版权信息
+            Write(compressLevelFlag); // 写压缩级别
+            Write(encryptTypeFlag); // 写加密类型
+            Write(isFileStream); // 写数据类型 0-Stream 1-FileStream
         }
 
         private void WriteCompressDataBlockByteCount(long count, int beginActualOffset)

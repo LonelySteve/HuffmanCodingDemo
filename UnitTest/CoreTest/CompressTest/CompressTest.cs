@@ -42,11 +42,11 @@ namespace UnitTest.CoreTest.CompressTest
             }
 
 
-            var fw = new FileStreamWrapper(new Dictionary<string, FileStream>
+            var fw = new Dictionary<string, FileStream>
             {
                 {"test_file_1.txt", File.OpenRead("test_file_1.txt")},
                 {"test_file_2.txt", File.OpenRead("test_file_2.txt")}
-            });
+            };
 
             AssertCompressAndUnCompressFileStream("13", fw, 1);
         }
@@ -59,7 +59,7 @@ namespace UnitTest.CoreTest.CompressTest
             var compressStream = new FileStream(saveFileName + ".test.huf", FileMode.Create);
             compressStream.Seek(0, SeekOrigin.Begin);
             var cw = new CompressStreamWriter(compressStream);
-            cw.Write(new StreamWrapper(input), compressLevelFlag, (int) EncryptType.None);
+            cw.Write(input, compressLevelFlag, (int) EncryptType.None);
             compressStream.Seek(0, SeekOrigin.Begin);
             var cr = new CompressStreamReader(compressStream);
             cr.Read(() => output);
@@ -68,13 +68,14 @@ namespace UnitTest.CoreTest.CompressTest
             Assert.AreEqual(BitConverter.ToString(sourceData), BitConverter.ToString(br.ReadBytes(sourceData.Length)));
         }
 
-        public void AssertCompressAndUnCompressFileStream(string saveFileName, FileStreamWrapper wrapper,
+        public void AssertCompressAndUnCompressFileStream(string saveFileName,
+            Dictionary<string, FileStream> fileStreams,
             byte compressLevelFlag)
         {
             var compressStream = new FileStream(saveFileName + ".multifile.huf", FileMode.Create);
             compressStream.Seek(0, SeekOrigin.Begin);
             var cw = new CompressStreamWriter(compressStream);
-            cw.Write(wrapper, compressLevelFlag, (int) EncryptType.None);
+            cw.Write(fileStreams, compressLevelFlag, (int) EncryptType.None);
             compressStream.Seek(0, SeekOrigin.Begin);
             // 解压缩
             using (var cr = new CompressStreamReader(compressStream))
@@ -82,13 +83,13 @@ namespace UnitTest.CoreTest.CompressTest
                 cr.Read(null, s => File.Create("recover." + s));
             }
 
-            foreach (var s in wrapper.FileStreams.Keys)
+            foreach (var s in fileStreams.Keys)
                 using (var fs = File.OpenRead("recover." + s))
                 {
                     using (var br = new BinaryReader(fs))
                     {
-                        wrapper.FileStreams[s].Seek(0, SeekOrigin.Begin);
-                        using (var br2 = new BinaryReader(wrapper.FileStreams[s]))
+                        fileStreams[s].Seek(0, SeekOrigin.Begin);
+                        using (var br2 = new BinaryReader(fileStreams[s]))
                         {
                             // TODO 长度有可能会溢出，不过这是测试，一般不用管
                             Assert.AreEqual(BitConverter.ToString(br2.ReadBytes((int) br2.BaseStream.Length)),
