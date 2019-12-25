@@ -10,15 +10,22 @@ using HuffmanCodingCore.Structs.HuffmanTrees.Nodes.Data;
 namespace HuffmanCodingCore.Structs.HuffmanTrees
 {
     /// <summary>
-    /// 哈夫曼树
+    ///     哈夫曼树
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public class HuffmanTree<T> : BinaryTree<IHuffmanTreeNodeData>
     {
-        protected IEqualityComparer<T> KeyComparer { get; }
-        protected HuffmanTree(IEqualityComparer<T> keyComparer=null) => this.KeyComparer = keyComparer;
+        protected HuffmanTree(IEqualityComparer<T> keyComparer = null)
+        {
+            KeyComparer = keyComparer;
+        }
 
-        protected HuffmanTree(HuffmanTreeNode rootNode, IEqualityComparer<T> keyComparer=null) : base(rootNode) => this.KeyComparer = keyComparer;
+        protected HuffmanTree(HuffmanTreeNode rootNode, IEqualityComparer<T> keyComparer = null) : base(rootNode)
+        {
+            KeyComparer = keyComparer;
+        }
+
+        protected IEqualityComparer<T> KeyComparer { get; }
 
         /// <summary>
         ///     获取编码本
@@ -41,6 +48,7 @@ namespace HuffmanCodingCore.Structs.HuffmanTrees
                         bits.Add(parentNode.Data.Code.Value);
                         parentNode = (HuffmanTreeNode) parentNode.ParentNode;
                     } while (parentNode.Data?.Code != null);
+
                     // 反转编码
                     bits.Reverse();
                     codeBook.Add(((HuffmanTreeLeafNodeData<T>) node.Data).Content, new BitArray(bits.ToArray()));
@@ -51,12 +59,13 @@ namespace HuffmanCodingCore.Structs.HuffmanTrees
         }
 
         /// <summary>
-        /// 以指定权重字典构造哈夫曼树
+        ///     以指定权重字典构造哈夫曼树
         /// </summary>
         /// <param name="weightDict">指定权重字典</param>
         /// <param name="keyComparer">键比较器</param>
         /// <returns></returns>
-        public static HuffmanTree<T> CreateFromWeightDictionary(Dictionary<T, ulong> weightDict = null, IEqualityComparer<T> keyComparer = null)
+        public static HuffmanTree<T> CreateFromWeightDictionary(Dictionary<T, ulong> weightDict = null,
+            IEqualityComparer<T> keyComparer = null)
         {
             // 如果权重字典为空，则直接返回一个空树
             if (weightDict == null || weightDict.Count == 0)
@@ -82,6 +91,7 @@ namespace HuffmanCodingCore.Structs.HuffmanTrees
                 // 将合并好的新结点重新加回 SortedList 对象中
                 sortedList.Add(newNode.Data.Weight, newNode);
             }
+
             var onlyOneNode = sortedList.First().Value;
             // 不幸的是，有可能只有一个叶子结点，这是相当特殊的情况，这个时候需要手动构造一个根结点
             // ReSharper disable once InvertIf
@@ -90,8 +100,11 @@ namespace HuffmanCodingCore.Structs.HuffmanTrees
                 onlyOneNode.Data.Code = false;
                 onlyOneNode = new HuffmanTreeNode(onlyOneNode, null);
             }
+
             // 存在权重字典为空的情况，在这种情况下构造的 SortedListed 对象内键值对数量会为 0 。此时应返回空树
-            return sortedList.Count == 0 ? new HuffmanTree<T>(keyComparer) : new HuffmanTree<T>(onlyOneNode, keyComparer);
+            return sortedList.Count == 0
+                ? new HuffmanTree<T>(keyComparer)
+                : new HuffmanTree<T>(onlyOneNode, keyComparer);
         }
     }
 

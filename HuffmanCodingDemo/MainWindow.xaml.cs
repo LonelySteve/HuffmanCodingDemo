@@ -1,28 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Forms;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using HuffmanCodingCore;
-
 using MessageBox = System.Windows.MessageBox;
-using Path = System.IO.Path;
 
 namespace HuffmanCodingDemo
 {
     /// <summary>
-    /// MainWindow.xaml 的交互逻辑
+    ///     MainWindow.xaml 的交互逻辑
     /// </summary>
     public partial class MainWindow : Window
     {
@@ -44,6 +32,7 @@ namespace HuffmanCodingDemo
                         {
                             cw.Write(new StreamWrapper(unCompressStream));
                         }
+
                         ms.Seek(0, SeekOrigin.Begin);
                         TextboxCompressed.Text = Convert.ToBase64String(ms.GetBuffer());
                     }
@@ -69,6 +58,7 @@ namespace HuffmanCodingDemo
                             cr.Read(() => unCompressStream);
                         }
                     }
+
                     unCompressStream.Seek(0, SeekOrigin.Begin);
                     TextboxUncompressed.Text = encoding.GetString(unCompressStream.GetBuffer());
                 }
@@ -82,7 +72,7 @@ namespace HuffmanCodingDemo
         private void Compress_Files_Button_Click(object sender, RoutedEventArgs e)
         {
             // 选择要压缩的文件
-            var fileOpenDialog = new System.Windows.Forms.OpenFileDialog
+            var fileOpenDialog = new OpenFileDialog
             {
                 Multiselect = true,
                 Title = "选择你要压缩的文件（可以多选）",
@@ -90,7 +80,7 @@ namespace HuffmanCodingDemo
             };
             fileOpenDialog.FileOk += (o2, e2) =>
             {
-                Dictionary<string, FileStream> fileStreamWithName = new Dictionary<string, FileStream>();
+                var fileStreamWithName = new Dictionary<string, FileStream>();
                 var filePaths = fileOpenDialog.FileNames;
                 foreach (var filePath in filePaths)
                 {
@@ -99,7 +89,7 @@ namespace HuffmanCodingDemo
                     fileStreamWithName[fileName] = fileStream;
                 }
 
-                var fileSaveDialog = new SaveFileDialog()
+                var fileSaveDialog = new SaveFileDialog
                 {
                     Title = "保存你的压缩文件到指定的目录",
                     AddExtension = true,
@@ -118,12 +108,13 @@ namespace HuffmanCodingDemo
                             cw.Write(new FileStreamWrapper(fileStreamWithName));
                         }
                     }
+
                     MessageBox.Show("压缩成功！", "信息", MessageBoxButton.OK, MessageBoxImage.Information);
                 };
                 fileSaveDialog.ShowDialog();
             };
 
-            fileOpenDialog.ShowDialog(); 
+            fileOpenDialog.ShowDialog();
         }
 
         private void UnCompress_Files_Button_Click(object sender, RoutedEventArgs e)
@@ -139,16 +130,18 @@ namespace HuffmanCodingDemo
 
             fileOpenDialog.FileOk += (o2, e2) =>
             {
-                var floderDialog = new FolderBrowserDialog() {
-                    Description="选择你要解压到的文件夹"
+                var folderBrowserDialog = new FolderBrowserDialog
+                {
+                    Description = "选择你要解压到的文件夹"
                 };
 
-                if (floderDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                if (folderBrowserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
                 {
-                    using (var cr = new CompressStreamReader(((OpenFileDialog)o2).OpenFile()))
+                    using (var cr = new CompressStreamReader(((OpenFileDialog) o2).OpenFile()))
                     {
-                        cr.Read(null, s => File.Create(Path.Combine(floderDialog.SelectedPath, s)),null,true);
+                        cr.Read(null, s => File.Create(Path.Combine(folderBrowserDialog.SelectedPath, s)));
                     }
+
                     MessageBox.Show("解压成功！", "信息", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             };

@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace HuffmanCodingCore.Utils
 {
-   public class ByteArrayEqualityComparer : IEqualityComparer<byte[]>
+    public class ByteArrayEqualityComparer : IEqualityComparer<byte[]>
     {
         public bool Equals(byte[] x, byte[] y)
         {

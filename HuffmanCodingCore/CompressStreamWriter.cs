@@ -20,7 +20,7 @@ namespace HuffmanCodingCore
     public class CompressStreamWriter : BitStreamWriter
     {
         /// <summary>
-        /// 使用指定的数据包装实例，压缩等级，加密类型和加密秘钥写入当前压缩流
+        ///     使用指定的数据包装实例，压缩等级，加密类型和加密秘钥写入当前压缩流
         /// </summary>
         /// <param name="wrapper">数据包装实例</param>
         /// <param name="compressLevel">压缩等级</param>
@@ -31,14 +31,15 @@ namespace HuffmanCodingCore
         {
             Write(wrapper, (byte) compressLevel, (byte) encryptType, key);
         }
+
         /// <summary>
-        /// 使用指定的数据包装实例，压缩等级标志，加密类型标志和加密秘钥写入当前压缩流
+        ///     使用指定的数据包装实例，压缩等级标志，加密类型标志和加密秘钥写入当前压缩流
         /// </summary>
         /// <param name="wrapper">数据包装实例</param>
         /// <param name="compressLevelFlag">压缩等级标志</param>
         /// <param name="encryptTypeFlag">加密类型标志</param>
         /// <param name="key">加密秘钥</param>
-        public void Write(DataWrapper wrapper, byte compressLevelFlag , byte encryptTypeFlag,
+        public void Write(DataWrapper wrapper, byte compressLevelFlag, byte encryptTypeFlag,
             byte[] key = null)
         {
             // 检查输入的参数是否有效
@@ -53,10 +54,11 @@ namespace HuffmanCodingCore
             Write(compressLevelFlag); // 写压缩级别
             Write(encryptTypeFlag); // 写加密类型
             Write(dataType); // 写数据类型 0-Stream 1-FileStream
-            
+
             var compressDataBlockMetaData = new List<Tuple<long, byte>>();
 
             var compressDataBlockStartPosition = OutStream.Position;
+
             #region 压缩数据块信息写入
 
             // 根据数据类型的不同写字典数据（因为对于 FileSteam 类型的数据来说，字典是以所有数据为样本计算的，所以需要分开处理）
@@ -66,38 +68,43 @@ namespace HuffmanCodingCore
                 Debug.Assert(streamWrapper != null, nameof(streamWrapper) + " != null");
                 var weightDictionary = GetCodeBook(new[] {streamWrapper.BaseStream}, compressLevelFlag);
                 WriteCodeBook(weightDictionary); // 写字典
-                var compressDataByteCount =  WriteCompressDataBlock(streamWrapper.BaseStream, weightDictionary, compressLevelFlag, encryptTypeFlag, key,out var remainBitsLength);  // 压缩写入原数据
-                compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount,remainBitsLength));
+                var compressDataByteCount = WriteCompressDataBlock(streamWrapper.BaseStream, weightDictionary,
+                    compressLevelFlag, encryptTypeFlag, key, out var remainBitsLength); // 压缩写入原数据
+                compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount, remainBitsLength));
             }
             else // FileStream
             {
                 var fileStreamWrapper = wrapper as FileStreamWrapper;
                 Debug.Assert(fileStreamWrapper != null, nameof(fileStreamWrapper) + " != null");
                 var weightDictionary =
-                    GetCodeBook(fileStreamWrapper.FileStreams.Select(kps=>kps.Value).Cast<Stream>().ToArray(), compressLevelFlag);
+                    GetCodeBook(fileStreamWrapper.FileStreams.Select(kps => kps.Value).Cast<Stream>().ToArray(),
+                        compressLevelFlag);
                 WriteCodeBook(weightDictionary); // 写字典
                 // 循环写每个文件流
                 foreach (var kps in fileStreamWrapper.FileStreams)
                 {
                     Write(kps.Key); // 写相对路径
-                    var compressDataByteCount = WriteCompressDataBlock(kps.Value, weightDictionary, compressLevelFlag, encryptTypeFlag, key,out var remainBitsLength); // 压缩写入原数据
+                    var compressDataByteCount = WriteCompressDataBlock(kps.Value, weightDictionary, compressLevelFlag,
+                        encryptTypeFlag, key, out var remainBitsLength); // 压缩写入原数据
                     compressDataBlockMetaData.Add(new Tuple<long, byte>(compressDataByteCount, remainBitsLength));
                 }
             }
 
             #endregion
+
             var compressDataBlockEndPosition = OutStream.Position;
 
             // 写压缩数据块总占用字节数
-            WriteCompressDataBlockByteCount(compressDataBlockEndPosition - compressDataBlockStartPosition, (int)beginActualOffset);
+            WriteCompressDataBlockByteCount(compressDataBlockEndPosition - compressDataBlockStartPosition,
+                (int) beginActualOffset);
             // 写压缩数据块信息
             WriteCompressDataBlockMetaData(compressDataBlockMetaData);
         }
 
-        private void WriteCompressDataBlockByteCount(long count,int beginActualOffset)
+        private void WriteCompressDataBlockByteCount(long count, int beginActualOffset)
         {
             var currentStreamPosition = OutStream.Position;
-            OutStream.Seek(beginActualOffset + 4, SeekOrigin.Begin);  // NOTE 类继承过来的 Seek() 方法 偏移量居然不是 long 类型 = =，不要用它
+            OutStream.Seek(beginActualOffset + 4, SeekOrigin.Begin); // NOTE 类继承过来的 Seek() 方法 偏移量居然不是 long 类型 = =，不要用它
             Write(count);
             OutStream.Seek(currentStreamPosition, SeekOrigin.Begin);
         }
@@ -109,7 +116,7 @@ namespace HuffmanCodingCore
             foreach (var streamInfoTuple in compressDataBlockMetaData)
             {
                 // 写压缩数据块的字节数
-                Write7BitEncodedInt((int)streamInfoTuple.Item1);
+                Write7BitEncodedInt((int) streamInfoTuple.Item1);
                 // 写压缩数据块的不满八位的剩余位数
                 Write(streamInfoTuple.Item2);
             }
@@ -123,8 +130,8 @@ namespace HuffmanCodingCore
         /// <param name="key"></param>
         private void CheckCompressArgument(byte compressLevelFlag, byte encryptTypeFlag, byte[] key)
         {
-            if(compressLevelFlag == 0)
-                throw  new EncodeArgumentException("compressLevelFlag");
+            if (compressLevelFlag == 0)
+                throw new EncodeArgumentException("compressLevelFlag");
             if (Array.IndexOf(new byte[] {0, 1}, encryptTypeFlag) == -1)
                 throw new EncodeArgumentException("encryptTypeFlag");
             if (encryptTypeFlag != 0 && key.Length != 160) throw new EncodeArgumentException("key");
@@ -152,9 +159,10 @@ namespace HuffmanCodingCore
                         weightDictionary[buffer] = 1;
                 }
             }
- 
+
             // 创建哈夫曼树
-            var huffmanTree = HuffmanTree<byte[]>.CreateFromWeightDictionary(weightDictionary,new ByteArrayEqualityComparer());
+            var huffmanTree =
+                HuffmanTree<byte[]>.CreateFromWeightDictionary(weightDictionary, new ByteArrayEqualityComparer());
             // 获取编码本
             var codeBook = huffmanTree.CodeBook;
             return codeBook;
@@ -180,8 +188,8 @@ namespace HuffmanCodingCore
         #region 受保护的写入方法
 
         /// <summary>
-        /// <para>使用指定的编码字典，压缩等级标志，加密类型标志和秘钥压缩写入指定流中的数据。</para>
-        /// <para>返回压缩后使用的字节数</para>
+        ///     <para>使用指定的编码字典，压缩等级标志，加密类型标志和秘钥压缩写入指定流中的数据。</para>
+        ///     <para>返回压缩后使用的字节数</para>
         /// </summary>
         /// <param name="value">欲压缩写入的流</param>
         /// <param name="codeBook">编码字典</param>
@@ -191,7 +199,7 @@ namespace HuffmanCodingCore
         /// <param name="remainBufferBitArrayLength">编码时不足八位而强行补零的位数</param>
         /// <returns></returns>
         protected long WriteCompressDataBlock(Stream value, IReadOnlyDictionary<byte[], BitArray> codeBook,
-            byte compressLevelFlag, byte encryptTypeFlag, byte[] key,out byte remainBufferBitArrayLength)
+            byte compressLevelFlag, byte encryptTypeFlag, byte[] key, out byte remainBufferBitArrayLength)
         {
             // 写 Hash 值
             WriteHashData(value);
@@ -206,18 +214,19 @@ namespace HuffmanCodingCore
                 // 初始化新的未压缩字节缓存
                 var unCompressByteBuff = new byte[buffLength];
                 // 加载缓存，由于上面算法的原因，这里在读取字节只会读小于或等于压缩等级标志值的数量
-                value.Read(unCompressByteBuff, 0, (int)buffLength);
+                value.Read(unCompressByteBuff, 0, (int) buffLength);
                 // 检查该键是否在编码字典中 
-                if (!codeBook.Keys.Contains(unCompressByteBuff)) throw new CodeBookKeyNotFoundException(unCompressByteBuff);
+                if (!codeBook.Keys.Contains(unCompressByteBuff))
+                    throw new CodeBookKeyNotFoundException(unCompressByteBuff);
                 // 通过查字典获取编码后的位数组
                 var compressedBits = codeBook[unCompressByteBuff];
                 // 向自身输出流输出编码后的位数组
                 WriteBits(compressedBits);
- 
+
                 // TODO 实现加密
             }
 
-            remainBufferBitArrayLength = (byte)BitsBufferActualLength;
+            remainBufferBitArrayLength = (byte) BitsBufferActualLength;
             // 将当前压缩流所在位置减去未写压缩数据时所在位置就能得到压缩后数据占用的字节数
             return BaseStream.Position - currentPosition; // 调用 BaseStream 时 会调用 Flush() 函数完成 位数组缓存的 写入
         }
@@ -234,7 +243,7 @@ namespace HuffmanCodingCore
             }
         }
 
-        
+
         protected void WriteFileFormat()
         {
             Write(FileFormat.ToCharArray());
@@ -245,7 +254,7 @@ namespace HuffmanCodingCore
             Write(Version);
         }
 
- 
+
         protected void WriteCopyright()
         {
             var encoding = new UTF8Encoding();
@@ -282,7 +291,8 @@ namespace HuffmanCodingCore
         {
         }
 
-        public CompressStreamWriter(Stream output, Encoding encoding, bool leaveOpen) : base(output, encoding, leaveOpen)
+        public CompressStreamWriter(Stream output, Encoding encoding, bool leaveOpen) : base(output, encoding,
+            leaveOpen)
         {
         }
 

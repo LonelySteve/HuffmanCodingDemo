@@ -101,7 +101,7 @@ namespace HuffmanCodingCore.Utils
             return result.Cast<bool>().All(i => i == false);
         }
 
-        #region   连接两个位数组 https://stackoverflow.com/questions/518513/is-there-any-simple-way-to-concatenate-two-bitarray-c-net
+        #region 连接两个位数组 https: //stackoverflow.com/questions/518513/is-there-any-simple-way-to-concatenate-two-bitarray-c-net
 
         /// <summary>
         ///     在当前位数组之后插入一个指定的位数组，返回拼接后的新位数组
@@ -133,7 +133,7 @@ namespace HuffmanCodingCore.Utils
 
         #endregion
 
-        #region https://stackoverflow.com/questions/3125676/generating-a-good-hash-code-gethashcode-for-a-bitarray
+        #region https: //stackoverflow.com/questions/3125676/generating-a-good-hash-code-gethashcode-for-a-bitarray
 
         public static FieldInfo GetInternalArrayGetter()
         {
