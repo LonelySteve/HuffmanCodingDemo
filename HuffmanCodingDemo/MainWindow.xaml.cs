@@ -113,7 +113,7 @@ namespace HuffmanCodingDemo
                 };
                 fileSaveDialog.ShowDialog();
             };
-
+            MessageBox.Show("压缩过大的文件可能会导致程序暂时失去响应，建议使用总量不大于 50 kb 的文件进行压缩测试", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
             fileOpenDialog.ShowDialog();
         }
 
@@ -145,7 +145,7 @@ namespace HuffmanCodingDemo
                     MessageBox.Show("解压成功！", "信息", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             };
-
+            MessageBox.Show("解压过大的文件可能会导致程序暂时失去响应，建议使用不大于 50 kb 的 HUF 压缩文件解压缩测试", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
             fileOpenDialog.ShowDialog();
         }
     }
