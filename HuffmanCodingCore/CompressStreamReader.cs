@@ -91,6 +91,11 @@ namespace HuffmanCodingCore
             IReadOnlyDictionary<BitArray, byte[]> codeBook,
             byte compressLevel, byte encryptType, byte[] key)
         {
+            // 如果压缩的数据字节数和多余的位数为 0 就不管，不读任何东西
+            if (compressDataBytes == 0 && remainBitsCount == 0)
+            {
+                return;
+            }
             // 读取 hash 数据
             var srcHashValue = ReadHashData();
             // 创建一个 List 用于读取编码位的缓存

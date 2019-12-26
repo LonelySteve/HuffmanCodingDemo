@@ -127,6 +127,7 @@ namespace HuffmanCodingCore
             WriteCompressDataBlockMetaData(compressDataBlockMetaData);
         }
 
+        // TODO 头部信息也没有经过压缩，但是这部分不是导致压缩率爆炸的主要原因
         protected void WriteHeader(bool isFileStream, byte compressLevelFlag, byte encryptTypeFlag, byte[] key = null)
         {
             // 检查输入的参数是否有效
@@ -148,6 +149,7 @@ namespace HuffmanCodingCore
             OutStream.Seek(currentStreamPosition, SeekOrigin.Begin);
         }
 
+        // TODO 写压缩数据块元数据没有经过压缩处理，这部分将占用大部分的存储空间，有待优化
         private void WriteCompressDataBlockMetaData(IReadOnlyCollection<Tuple<long, byte>> compressDataBlockMetaData)
         {
             // 写压缩数据块数量
@@ -240,6 +242,12 @@ namespace HuffmanCodingCore
         protected long WriteCompressDataBlock(Stream value, IReadOnlyDictionary<byte[], BitArray> codeBook,
             byte compressLevelFlag, byte encryptTypeFlag, byte[] key, out byte remainBufferBitArrayLength)
         {
+            if (value.Length == 0)
+            {
+                remainBufferBitArrayLength = 0;
+                return 0;
+            }
+
             // 写 Hash 值
             WriteHashData(value);
             // 记住未写压缩数据是当前压缩流的位置
