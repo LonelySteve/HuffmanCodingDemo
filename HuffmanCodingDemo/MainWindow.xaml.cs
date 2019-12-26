@@ -55,12 +55,14 @@ namespace HuffmanCodingDemo
                     {
                         using (var cr = new CompressStreamReader(compressStream))
                         {
-                            cr.Read(() => unCompressStream);
+                            var readBytesCount = cr.Read(() => unCompressStream);
+                            unCompressStream.Seek(0, SeekOrigin.Begin);
+                            // 修复 Windows 7 下输出不可打印字符的问题
+                            var bytes = new byte[readBytesCount];
+                            Array.Copy(unCompressStream.GetBuffer(), bytes, readBytesCount);
+                            TextboxUncompressed.Text = encoding.GetString(bytes);
                         }
                     }
-
-                    unCompressStream.Seek(0, SeekOrigin.Begin);
-                    TextboxUncompressed.Text = encoding.GetString(unCompressStream.GetBuffer());
                 }
             }
             catch (Exception ex)

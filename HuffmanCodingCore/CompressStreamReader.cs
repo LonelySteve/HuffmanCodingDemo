@@ -28,10 +28,11 @@ namespace HuffmanCodingCore
         {
         }
 
-        public void Read(Func<Stream> onStreamCallback = null,
+        public long Read(Func<Stream> onStreamCallback = null,
             Func<string, FileStream> onFileStreamCallback = null, byte[] key = null,
             bool autoCloseOutputFileStream = true)
         {
+            var readBytesCount = 0L;
             // 读取文件格式标识
             ReadFileFormat();
             ReadVersion();
@@ -52,7 +53,7 @@ namespace HuffmanCodingCore
                 {
                     var codeBook = ReadCodeBook(); // 获取编码字典
                     var metaData = compressDataBlockMetaData.First(); // 对于这种情形就有且只有一种压缩数据块元数据
-                    ReadCompressDataBlock(onStreamCallback(), metaData.Item1, metaData.Item2, codeBook,
+                    readBytesCount = ReadCompressDataBlock(onStreamCallback(), metaData.Item1, metaData.Item2, codeBook,
                         compressLevelFlag, encryptTypeFlag, key);
                 }
             }
@@ -68,12 +69,14 @@ namespace HuffmanCodingCore
                         // 获取输出文件流
                         var fileStream = onFileStreamCallback(fileRelativePath);
                         // 读取压缩数据块
-                        ReadCompressDataBlock(fileStream, metaData.Item1, metaData.Item2, codeBook, compressLevelFlag,
+                        readBytesCount += ReadCompressDataBlock(fileStream, metaData.Item1, metaData.Item2, codeBook, compressLevelFlag,
                             encryptTypeFlag, key);
                         if (autoCloseOutputFileStream) fileStream.Dispose();
                     }
                 }
             }
+
+            return readBytesCount;
         }
 
         private IEnumerable<Tuple<long, byte>> ReadCompressDataBlockMetaData()
@@ -87,14 +90,14 @@ namespace HuffmanCodingCore
             return retList;
         }
 
-        private void ReadCompressDataBlock(Stream outputStream, long compressDataBytes, byte remainBitsCount,
+        private long ReadCompressDataBlock(Stream outputStream, long compressDataBytes, byte remainBitsCount,
             IReadOnlyDictionary<BitArray, byte[]> codeBook,
             byte compressLevel, byte encryptType, byte[] key)
         {
             // 如果压缩的数据字节数和多余的位数为 0 就不管，不读任何东西
             if (compressDataBytes == 0 && remainBitsCount == 0)
             {
-                return;
+                return 0;
             }
             // 读取 hash 数据
             var srcHashValue = ReadHashData();
@@ -103,27 +106,32 @@ namespace HuffmanCodingCore
 
             if (remainBitsCount != 0)
                 compressDataBytes--;
+            // 记录输出流当前位置，作为输出流开始位置
+            var outputStreamStartPosition = outputStream.Position;
 
             for (var i = 0; i < compressDataBytes * 8 + remainBitsCount; i++)
             {
-                var bit = ReadBit();
-                encodedBitsBuff.Add(bit);
+                // 取一位的数据加入编码位缓存列表
+                encodedBitsBuff.Add(ReadBit());
+                // 尝试将当前编码位缓存列表作为有效的位数组
                 var assumptiveValidBits = new BitArray(encodedBitsBuff.ToArray());
+                // 比较试图作为有效的位数组是否满足编码字典（尝试解码）
                 if (codeBook.TryGetValue(assumptiveValidBits, out var validBytes))
                 {
+                    // 输出解码后的字节
                     outputStream.Write(validBytes, 0, validBytes.Length);
-                    // 清空读取编码位用到的栈缓存
+                    // 清空读取编码位用到的列表缓存
                     encodedBitsBuff.Clear();
                 }
             }
 
-            // 理论上栈缓存应该刚好被最后一次解码给清空，这里验证一下，如果不是这样很有可能解码出问题了
+            // 理论上列表缓存应该刚好被最后一次解码给清空，这里验证一下，如果不是这样很有可能解码出问题了
             if (encodedBitsBuff.Count != 0) throw new DecodeException();
             // TODO 实现解密
             // 通过 Hash 检验输出流是否有效
             using (var sha1 = new SHA1CryptoServiceProvider())
             {
-                outputStream.Seek(0, SeekOrigin.Begin);
+                outputStream.Seek(outputStreamStartPosition, SeekOrigin.Begin);
                 var currentHashValue = sha1.ComputeHash(outputStream);
                 if (!new ByteArrayEqualityComparer().Equals(srcHashValue, currentHashValue))
                     throw new HashMismatchException();
@@ -131,6 +139,10 @@ namespace HuffmanCodingCore
 
             // 记得别忘了清空缓存，读下一个压缩数据块的时候不能带上上次的缓存的
             HardClearBitsBuffer();
+            // 记录输出流当前位置，作为输出流结束位置
+            var outputStreamEndPosition = outputStream.Position;
+
+            return outputStreamEndPosition - outputStreamStartPosition;
         }
 
         // ReSharper disable once ReturnTypeCanBeEnumerable.Local
