@@ -71,82 +71,96 @@ namespace HuffmanCodingDemo
 
         private void Compress_Files_Button_Click(object sender, RoutedEventArgs e)
         {
-            // 选择要压缩的文件
-            var fileOpenDialog = new OpenFileDialog
+            try
             {
-                Multiselect = true,
-                Title = "选择你要压缩的文件（可以多选）",
-                CheckFileExists = true
-            };
-            fileOpenDialog.FileOk += (o2, e2) =>
-            {
-                var fileStreamWithName = new Dictionary<string, FileStream>();
-                var filePaths = fileOpenDialog.FileNames;
-                foreach (var filePath in filePaths)
+                // 选择要压缩的文件
+                var fileOpenDialog = new OpenFileDialog
                 {
-                    var fileName = Path.GetFileName(filePath);
-                    var fileStream = File.OpenRead(filePath);
-                    fileStreamWithName[fileName] = fileStream;
-                }
-
-                var fileSaveDialog = new SaveFileDialog
-                {
-                    Title = "保存你的压缩文件到指定的目录",
-                    AddExtension = true,
-                    DefaultExt = "huf",
-                    Filter = "HUF压缩文件|*.huf",
-                    CreatePrompt = true,
-                    CheckPathExists = true
+                    Multiselect = true,
+                    Title = "选择你要压缩的文件（可以多选）",
+                    CheckFileExists = true
                 };
-
-                fileSaveDialog.FileOk += (o3, e3) =>
+                fileOpenDialog.FileOk += (o2, e2) =>
                 {
-                    using (var outputCompressStream = fileSaveDialog.OpenFile())
+                    var fileStreamWithName = new Dictionary<string, FileStream>();
+                    var filePaths = fileOpenDialog.FileNames;
+                    foreach (var filePath in filePaths)
                     {
-                        using (var cw = new CompressStreamWriter(outputCompressStream))
-                        {
-                            cw.Write(fileStreamWithName);
-                        }
+                        var fileName = Path.GetFileName(filePath);
+                        var fileStream = File.OpenRead(filePath);
+                        fileStreamWithName[fileName] = fileStream;
                     }
 
-                    MessageBox.Show("压缩成功！", "信息", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var fileSaveDialog = new SaveFileDialog
+                    {
+                        Title = "保存你的压缩文件到指定的目录",
+                        AddExtension = true,
+                        DefaultExt = "huf",
+                        Filter = "HUF压缩文件|*.huf",
+                        CreatePrompt = true,
+                        CheckPathExists = true
+                    };
+
+                    fileSaveDialog.FileOk += (o3, e3) =>
+                    {
+                        using (var outputCompressStream = fileSaveDialog.OpenFile())
+                        {
+                            using (var cw = new CompressStreamWriter(outputCompressStream))
+                            {
+                                cw.Write(fileStreamWithName);
+                            }
+                        }
+
+                        MessageBox.Show("压缩成功！", "信息", MessageBoxButton.OK, MessageBoxImage.Information);
+                    };
+                    fileSaveDialog.ShowDialog();
                 };
-                fileSaveDialog.ShowDialog();
-            };
-            MessageBox.Show("压缩过大的文件可能会导致程序暂时失去响应，建议使用总量不大于 50 kb 的文件进行压缩测试", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-            fileOpenDialog.ShowDialog();
+                MessageBox.Show("压缩过大的文件可能会导致程序暂时失去响应，建议使用总量不大于 50 kb 的文件进行压缩测试", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                fileOpenDialog.ShowDialog();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.Message, "哎呀，发生了一个错误~", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void UnCompress_Files_Button_Click(object sender, RoutedEventArgs e)
         {
-            // 选择要压缩的文件
-            var fileOpenDialog = new OpenFileDialog
+            try
             {
-                Multiselect = false,
-                Filter = "HUF压缩文件|*.huf",
-                Title = "选择你要解压缩的文件",
-                CheckFileExists = true
-            };
-
-            fileOpenDialog.FileOk += (o2, e2) =>
-            {
-                var folderBrowserDialog = new FolderBrowserDialog
+                // 选择要压缩的文件
+                var fileOpenDialog = new OpenFileDialog
                 {
-                    Description = "选择你要解压到的文件夹"
+                    Multiselect = false,
+                    Filter = "HUF压缩文件|*.huf",
+                    Title = "选择你要解压缩的文件",
+                    CheckFileExists = true
                 };
 
-                if (folderBrowserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                fileOpenDialog.FileOk += (o2, e2) =>
                 {
-                    using (var cr = new CompressStreamReader(((OpenFileDialog) o2).OpenFile()))
+                    var folderBrowserDialog = new FolderBrowserDialog
                     {
-                        cr.Read(null, s => File.Create(Path.Combine(folderBrowserDialog.SelectedPath, s)));
-                    }
+                        Description = "选择你要解压到的文件夹"
+                    };
 
-                    MessageBox.Show("解压成功！", "信息", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-            };
-            MessageBox.Show("解压过大的文件可能会导致程序暂时失去响应，建议使用不大于 50 kb 的 HUF 压缩文件解压缩测试", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
-            fileOpenDialog.ShowDialog();
+                    if (folderBrowserDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+                    {
+                        using (var cr = new CompressStreamReader(((OpenFileDialog)o2).OpenFile()))
+                        {
+                            cr.Read(null, s => File.Create(Path.Combine(folderBrowserDialog.SelectedPath, s)));
+                        }
+
+                        MessageBox.Show("解压成功！", "信息", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                };
+                MessageBox.Show("解压过大的文件可能会导致程序暂时失去响应，建议使用不大于 50 kb 的 HUF 压缩文件解压缩测试", "警告", MessageBoxButton.OK, MessageBoxImage.Warning);
+                fileOpenDialog.ShowDialog();
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.Message, "哎呀，发生了一个错误~", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 }
