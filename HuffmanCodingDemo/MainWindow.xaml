@@ -31,7 +31,7 @@
             </Grid.ColumnDefinitions>
             <GroupBox Grid.Column="0" Header="待压缩文本">
                 <ScrollViewer Grid.Column="0">
-                    <TextBox x:Name="TextboxUncompressed" Grid.Column="0" TextWrapping="Wrap" />
+                    <TextBox x:Name="TextboxUncompressed" Grid.Column="0" TextWrapping="Wrap" AcceptsReturn="True"/>
                 </ScrollViewer>
             </GroupBox>
             <Grid Grid.Column="1">
@@ -46,7 +46,7 @@
             </Grid>
             <GroupBox Grid.Column="2" Header="待解压文本（Base64编码的huf文件数据）">
                 <ScrollViewer Grid.Column="2">
-                    <TextBox x:Name="TextboxCompressed" Grid.Column="2" TextWrapping="Wrap" />
+                    <TextBox x:Name="TextboxCompressed" Grid.Column="2" TextWrapping="Wrap" AcceptsReturn="True"/>
                 </ScrollViewer>
             </GroupBox>
         </Grid>
