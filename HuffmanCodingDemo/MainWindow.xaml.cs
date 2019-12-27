@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows;
 using System.Windows.Forms;
 using HuffmanCodingCore;
+using HuffmanCodingCore.Structs.EncodeArgument;
 using MessageBox = System.Windows.MessageBox;
 
 namespace HuffmanCodingDemo
@@ -30,7 +31,7 @@ namespace HuffmanCodingDemo
                     {
                         using (var cw = new CompressStreamWriter(ms, encoding, true))
                         {
-                            cw.Write(unCompressStream);
+                            cw.Write(unCompressStream, CompressLevel.Slow);
                         }
 
                         ms.Seek(0, SeekOrigin.Begin);
@@ -109,7 +110,7 @@ namespace HuffmanCodingDemo
                         {
                             using (var cw = new CompressStreamWriter(outputCompressStream))
                             {
-                                cw.Write(fileStreamWithName);
+                                cw.Write(fileStreamWithName, CompressLevel.Slow);
                             }
                         }
 
